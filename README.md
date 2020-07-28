@@ -25,3 +25,9 @@ The compose file uses docker volumes which persist data between reboots. To comp
 ```
 docker compose down -v
 ```
+
+## Example Commands
+### Connect to the database
+```
+docker-compose run cbioportal_database   sh -c 'mysql -hcbioportal_database -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"'
+```
