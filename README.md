@@ -15,6 +15,11 @@ In a different terminal import a study
 docker-compose run cbioportal metaImport.py -u http://cbioportal:8080 -s study/lgg_ucsf_2014/ -o
 ```
 
+Restart the cbioportal container after importing:
+```
+docker-compose restart cbioportal
+```
+
 The compose file uses docker volumes which persist data between reboots. To completely remove all data run:
 
 ```
