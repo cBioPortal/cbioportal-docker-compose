@@ -26,6 +26,22 @@ The compose file uses docker volumes which persist data between reboots. To comp
 docker compose down -v
 ```
 
+## Loading other seed databases
+### hg38 support
+To enable hg38 support. First delete any existing databases and containers:
+```
+docker-compose -v
+```
+Then run
+```
+init_hg38.sh
+```
+Followed by:
+```
+docker-compose up
+```
+When loading hg38 data make sure to set `reference_genome_id: hg38` in [meta_study.txt](https://docs.cbioportal.org/5.1-data-loading/data-loading/file-formats#meta-file-4). The example study in `study/` is `hg19` based. 
+
 ## Example Commands
 ### Connect to the database
 ```
