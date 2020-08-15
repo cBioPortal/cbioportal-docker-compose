@@ -3,7 +3,7 @@ version: '3'
 services:
   cbioportal:
     restart: unless-stopped
-    image: ${DOCKER_IMAGE_CBIOPORTAL:-cbioportal/cbioportal:3.4.6}
+    image: ${DOCKER_IMAGE_CBIOPORTAL:-cbioportal/cbioportal:3.4.8}
     container_name: cbioportal_container
     environment:
       SHOW_DEBUG_INFO: "true"
