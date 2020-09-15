@@ -12,7 +12,7 @@ docker-compose up
 ```
 In a different terminal import a study
 ```
-docker-compose run cbioportal metaImport.py -u http://cbioportal:8080 -s study/lgg_ucsf_2014/ -o
+docker-compose run --rm cbioportal metaImport.py -u http://cbioportal:8080 -s study/lgg_ucsf_2014/ -o
 ```
 
 Restart the cbioportal container after importing:
@@ -45,7 +45,7 @@ When loading hg38 data make sure to set `reference_genome_id: hg38` in [meta_stu
 ## Example Commands
 ### Connect to the database
 ```
-docker-compose run cbioportal_database \
+docker-compose run --rm cbioportal_database \
     sh -c 'mysql -hcbioportal_database -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"'
 ```
 
