@@ -40,7 +40,7 @@ Followed by:
 ```
 docker-compose up
 ```
-When loading hg38 data make sure to set `reference_genome_id: hg38` in [meta_study.txt](https://docs.cbioportal.org/5.1-data-loading/data-loading/file-formats#meta-file-4). The example study in `study/` is `hg19` based. 
+When loading hg38 data make sure to set `reference_genome: hg38` in [meta_study.txt](https://docs.cbioportal.org/5.1-data-loading/data-loading/file-formats#meta-file-4). The example study in `study/` is `hg19` based. 
 
 ## Example Commands
 ### Connect to the database
