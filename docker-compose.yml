@@ -4,7 +4,7 @@ services:
   cbioportal:
     restart: unless-stopped
     image: ${DOCKER_IMAGE_CBIOPORTAL}
-    container_name: cbioportal_container
+    container_name: cbioportal-container
     environment:
       SHOW_DEBUG_INFO: "true"
     ports:
@@ -13,15 +13,15 @@ services:
      - ./study:/study/
      - ./config/portal.properties:/cbioportal/portal.properties:ro
     depends_on:
-     - cbioportal_database
-     - cbioportal_session
+     - cbioportal-database
+     - cbioportal-session
     networks:
      - cbio-net
-    command: /bin/sh -c "java -Xms2g -Xmx4g -Dauthenticate=noauthsessionservice -Dsession.service.url=http://cbioportal_session:5000/api/sessions/my_portal/ -jar webapp-runner.jar -AmaxHttpHeaderSize=16384 -AconnectionTimeout=20000 --enable-compression /cbioportal-webapp"
-  cbioportal_database:
+    command: /bin/sh -c "java -Xms2g -Xmx4g -Dauthenticate=noauthsessionservice -Dsession.service.url=http://cbioportal-session:5000/api/sessions/my_portal/ -jar webapp-runner.jar -AmaxHttpHeaderSize=16384 -AconnectionTimeout=20000 --enable-compression /cbioportal-webapp"
+  cbioportal-database:
     restart: unless-stopped
     image: mysql:5.7
-    container_name: cbioportal_database_container
+    container_name: cbioportal-database-container
     environment:
       MYSQL_DATABASE: cbioportal
       MYSQL_USER: cbio_user
@@ -33,21 +33,21 @@ services:
      - cbioportal_mysql_data:/var/lib/mysql
     networks:
      - cbio-net
-  cbioportal_session:
+  cbioportal-session:
     restart: unless-stopped
     image: cbioportal/session-service:0.2.0
-    container_name: cbioportal_session_container
+    container_name: cbioportal-session-container
     environment:
       SERVER_PORT: 5000
-      JAVA_OPTS: -Dspring.data.mongodb.uri=mongodb://cbioportal_session_database:27017/session-service
+      JAVA_OPTS: -Dspring.data.mongodb.uri=mongodb://cbioportal-session-database:27017/session-service
     depends_on:
-      - cbioportal_session_database
+      - cbioportal-session-database
     networks:
       - cbio-net
-  cbioportal_session_database:
+  cbioportal-session-database:
     restart: unless-stopped
     image: mongo:3.7.9
-    container_name: cbioportal_session_database_container
+    container_name: cbioportal-session-database-container
     environment:
       MONGO_INITDB_DATABASE: session_service
     volumes:

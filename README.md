@@ -45,8 +45,8 @@ When loading hg38 data make sure to set `reference_genome: hg38` in [meta_study.
 ## Example Commands
 ### Connect to the database
 ```
-docker-compose run --rm cbioportal_database \
-    sh -c 'mysql -hcbioportal_database -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"'
+docker-compose run --rm cbioportal-database \
+    sh -c 'mysql -hcbioportal-database -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"'
 ```
 
 ## Advanced topics
