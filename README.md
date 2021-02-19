@@ -30,7 +30,7 @@ docker-compose down -v
 ### hg38 support
 To enable hg38 support. First delete any existing databases and containers:
 ```
-docker-compose -v
+docker-compose down -v
 ```
 Then run
 ```
