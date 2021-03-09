@@ -1,0 +1,4 @@
+services:
+  cbioportal-database:
+    ports:
+      - "3306:3306"
