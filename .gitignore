@@ -1,0 +1,5 @@
+.DS_Store
+data/*
+study/*
+config/portal.properties
+!*.sh
