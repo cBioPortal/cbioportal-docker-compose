@@ -16,7 +16,7 @@ docker compose -f docker-compose.yml -f open-db-ports.yml up
 ```
 In a different terminal import a study
 ```
-docker compose run --rm cbioportal metaImport.py -u http://cbioportal:8080 -s study/lgg_ucsf_2014/ -o
+docker compose exec cbioportal metaImport.py -u http://cbioportal:8080 -s study/lgg_ucsf_2014/ -o
 ```
 
 Restart the cbioportal container after importing:
