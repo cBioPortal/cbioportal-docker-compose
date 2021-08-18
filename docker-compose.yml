@@ -35,7 +35,7 @@ services:
      - cbio-net
   cbioportal-session:
     restart: unless-stopped
-    image: cbioportal/session-service:0.3.0
+    image: ${DOCKER_IMAGE_SESSION_SERVICE}
     container_name: cbioportal-session-container
     environment:
       SERVER_PORT: 5000
