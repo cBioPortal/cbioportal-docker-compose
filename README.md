@@ -30,6 +30,8 @@ The compose file uses docker volumes which persist data between reboots. To comp
 docker-compose down -v
 ```
 
+If you were able to successfully set up a local installation of cBioPortal, please add it here: https://www.cbioportal.org/installations. Thank you!
+
 ## Loading other seed databases
 ### hg38 support
 To enable hg38 support. First delete any existing databases and containers:
