@@ -74,3 +74,8 @@ You can change the heap size in the command section of the cbioportal container
 
 #### Importer
 For the importer you can't directly edit the java command used to import a study. Instead add `JAVA_TOOL_OPTIONS` as an environment variable to the cbioportal container and set the desired JVM parameters there (e.g. `JAVA_TOOL_OPTIONS: "-Xms4g -Xmx8g"`).
+
+
+### Infrastructure model
+
+![Infrastructure model](.infragenie/infrastructure_model.png)
