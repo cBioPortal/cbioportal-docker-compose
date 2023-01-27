@@ -1,9 +1,4 @@
 # Run cBioPortal using Docker Compose
-Clone the repo:
-```
-git clone git@github.com:cBioportal/cbioportal-docker-compose
-```
-
 Download necessary files (seed data, example config and example study from
 datahub):
 ```
