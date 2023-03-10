@@ -6,7 +6,5 @@ services:
     image: cbioportal/cbioportal:5.2.6
   cbioportal-database:
     image: biarms/mysql:5.7
-  cbioportal-session:
-    image: cbioportal/session-service:0.6.1
   cbioportal-session-database:
     image: mongo:4.2
