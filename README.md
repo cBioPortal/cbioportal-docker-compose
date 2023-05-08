@@ -34,10 +34,6 @@ If you were able to successfully set up a local installation of cBioPortal, plea
 
 ## Known issues
 
-### Macbook M1
-
-See ticket and solution: https://github.com/cBioPortal/cbioportal/issues/9829
-
 ## Loading other seed databases
 ### hg38 support
 To enable hg38 support. First delete any existing databases and containers:

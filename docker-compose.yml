@@ -20,7 +20,7 @@ services:
     command: /bin/sh -c "java -Xms2g -Xmx4g -Dauthenticate=noauthsessionservice -Dsession.service.url=http://cbioportal-session:5000/api/sessions/my_portal/ -jar webapp-runner.jar -AmaxHttpHeaderSize=16384 -AconnectionTimeout=20000 --enable-compression /cbioportal-webapp"
   cbioportal-database:
     restart: unless-stopped
-    image: mysql:5.7
+    image: ${DOCKER_IMAGE_MYSQL}
     container_name: cbioportal-database-container
     environment:
       MYSQL_DATABASE: cbioportal
@@ -46,7 +46,7 @@ services:
       - cbio-net
   cbioportal-session-database:
     restart: unless-stopped
-    image: mongo:3.7.9
+    image: mongo:4.2
     container_name: cbioportal-session-database-container
     environment:
       MONGO_INITDB_DATABASE: session_service
