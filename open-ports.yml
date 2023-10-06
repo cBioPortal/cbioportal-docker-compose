@@ -1,0 +1,11 @@
+version: '3'
+services:
+  cbioportal-database:
+    ports:
+      - "3306:3306"
+  cbioportal-session:
+    ports:
+      - "5000:5000"
+  cbioportal-session-database:
+    ports:
+      - "27017:27017"
