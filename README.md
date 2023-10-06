@@ -10,7 +10,7 @@ database needs to import some data.
 ```
 docker compose up
 ```
-If you are developing and want to expose the database for inspection through a program like Sequel Pro, run:
+If you are developing and want to expose the MySQL database for inspection through a program like Sequel Pro, run:
 ```
 docker compose -f docker-compose.yml -f open-ports.yml up
 ```
