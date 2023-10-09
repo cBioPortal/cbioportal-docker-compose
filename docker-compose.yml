@@ -7,6 +7,10 @@ services:
     container_name: cbioportal-container
     environment:
       SHOW_DEBUG_INFO: "true"
+      # TODO: properties need to be in both PORTAL_HOME and
+      # PORTAL_WEB_HOME. Db connection failes if the properties are not in
+      # /cbioportal-webapp/. Do we still need /cbioportal/?
+      PORTAL_HOME: "/cbioportal-webapp"
     ports:
       - "8080:8080"
     volumes:
