@@ -11,13 +11,15 @@ services:
       - "8080:8080"
     volumes:
      - ./study:/study/
-     - ./config/portal.properties:/cbioportal/portal.properties:ro
+     - ./config/portal.properties:/cbioportal-webapp/portal.properties:ro
     depends_on:
      - cbioportal-database
      - cbioportal-session
     networks:
      - cbio-net
-    command: /bin/sh -c "java -Xms2g -Xmx4g -Dauthenticate=noauthsessionservice -Dsession.service.url=http://cbioportal-session:5000/api/sessions/my_portal/ -jar webapp-runner.jar -AmaxHttpHeaderSize=16384 -AconnectionTimeout=20000 --enable-compression /cbioportal-webapp"
+    # TODO: servlet-api should be excluded from deps in mvn, the removal below is just a quick fix
+    # This might be helpful: https://stackoverflow.com/questions/36233626
+    command: /bin/sh -c "rm -rf /cbioportal-webapp/lib/servlet-api-2.5.jar && java -Xms2g -Xmx4g -Dauthenticate=noauthsessionservice -Dsession.service.url=http://cbioportal-session:5000/api/sessions/my_portal/ -cp '/cbioportal-webapp:/cbioportal-webapp/lib/*' org.cbioportal.PortalApplication"
   cbioportal-database:
     restart: unless-stopped
     image: ${DOCKER_IMAGE_MYSQL}
