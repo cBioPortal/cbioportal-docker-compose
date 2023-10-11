@@ -1,6 +1,12 @@
+# Tools for development
+
+In this folder is some additional configuration that can be useful for local development. None of this should be deployed directly to production
+
 # Set up keycloak for Spring Boot cBioPortal
 
-1. Run components needed for local developent (cbioportal database, session service, keycloak).
+These steps should work for spinning up keycloak for use with the Spring Boot refactoring of cBioPortal (see [RFC72](https://docs.google.com/document/d/1SoFaiQ-UGdXXSmkl0-lKEAZz3PCBp5zgJ9US0JhJmrk/edit) and related ticket https://github.com/cBioPortal/cbioportal/issues/10356). It has been tested with the `demo-rfc72` image.
+
+1. Run components needed for local development (cbioportal database, session service, keycloak).
 These services have portal open for external connection (resp. 3306, 5000, 8084):
 
 ```
@@ -22,3 +28,5 @@ spring.security.saml2.relyingparty.registration.cbio-idp.identityprovider.metada
 ```
 
 6. Start cBioPortal application.
+
+⚠️ Warning: Do not use this directly for production use as it takes several shortcuts to get a quick keycloak instance up. It e.g. does not use AuthN request signing
