@@ -4,7 +4,7 @@
 These services have portal open for external connection (resp. 3306, 5000, 8084):
 
 ```
- docker compose -f docker-compose.yml -f keycloak.yml -f open-ports.yml up -d kcdb keycloak cbioportal-database cbioportal-session-database cbioportal-session
+ docker compose -f docker-compose.yml -f ./dev/keycloak.yml -f ./dev/open-ports.yml up -d kcdb keycloak cbioportal-database cbioportal-session cbioportal-session-database 
 ```
 
 2. Retrieve the SAML2 IDP metadata xml file:
