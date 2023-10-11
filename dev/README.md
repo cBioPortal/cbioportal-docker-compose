@@ -27,6 +27,6 @@ authenticate=saml
 spring.security.saml2.relyingparty.registration.cbio-idp.identityprovider.metadata-uri=classpath://saml2-idp-metadata.xml
 ```
 
-6. Start cBioPortal application.
+6. Start cBioPortal application. The login credentials are `testuser:P@assword1` (they can be found in [keycloak-config.json](./keycloak-config.json)).
 
 ⚠️ Warning: Do not use this directly for production use as it takes several shortcuts to get a quick keycloak instance up. It e.g. does not use AuthN request signing
