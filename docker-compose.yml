@@ -23,7 +23,7 @@ services:
      - cbio-net
     # TODO: servlet-api should be excluded from deps in mvn, the removal below is just a quick fix
     # This might be helpful: https://stackoverflow.com/questions/36233626
-    command: /bin/sh -c "rm -rf /cbioportal-webapp/lib/servlet-api-2.5.jar && java -Xms2g -Xmx4g -Dauthenticate=noauthsessionservice -Dsession.service.url=http://cbioportal-session:5000/api/sessions/my_portal/ -cp '/cbioportal-webapp:/cbioportal-webapp/lib/*' org.cbioportal.PortalApplication"
+    command: /bin/sh -c "rm -rf /cbioportal-webapp/lib/servlet-api-2.5.jar && java -Xms2g -Xmx4g -cp '/cbioportal-webapp:/cbioportal-webapp/lib/*' org.cbioportal.PortalApplication --authenticate=false --session.service.url=http://cbioportal-session:5000/api/sessions/my_portal/"
   cbioportal-database:
     restart: unless-stopped
     image: ${DOCKER_IMAGE_MYSQL}
