@@ -1,0 +1,46 @@
+version: '3'
+
+services:
+
+  keycloak:
+    networks:
+    - kc-net
+    container_name: keycloak
+    image: jboss/keycloak:16.1.1
+    restart: unless-stopped
+    depends_on:
+    - kcdb
+    volumes:
+    - ./keycloak-config.json:/tmp/realm.json:ro
+    ports:
+    - "8084:8080"
+    environment:
+    - DB_VENDOR=mysql
+    - DB_ADDR=kcdb
+    - DB_USER=keycloak
+    - DB_PORT=3306
+    - DB_PASSWORD=password
+    - DB_DATABASE=keycloak
+    - KEYCLOAK_USER=admin
+    - KEYCLOAK_PASSWORD=admin
+    - JDBC_PARAMS=${KEYCLOAK_JDBC_PARAMS:-useSSL=false&serverTimezone=UTC}
+    - KEYCLOAK_IMPORT=/tmp/realm.json
+
+  kcdb:
+    networks:
+    - kc-net
+    image: ${DOCKER_IMAGE_MYSQL}
+    container_name: kcdb
+    restart: unless-stopped
+    volumes:
+    - keycloak_mysql_data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_password
+      - MYSQL_USER=keycloak
+      - MYSQL_PASSWORD=password
+      - MYSQL_DATABASE=keycloak
+    command: --ssl=0 --lower_case_table_names=1
+networks:
+  kc-net:
+volumes:
+  keycloak_mysql_data:
