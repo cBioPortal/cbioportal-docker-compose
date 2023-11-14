@@ -7,17 +7,23 @@ services:
     container_name: cbioportal-container
     environment:
       SHOW_DEBUG_INFO: "true"
+      # TODO: properties need to be in both PORTAL_HOME and
+      # PORTAL_WEB_HOME. Db connection failes if the properties are not in
+      # /cbioportal-webapp/. Do we still need /cbioportal/?
+      PORTAL_HOME: "/cbioportal"
     ports:
       - "8080:8080"
     volumes:
      - ./study:/study/
-     - ./config/portal.properties:/cbioportal/portal.properties:ro
+     - ./config/application.properties:/cbioportal/application.properties:ro
     depends_on:
      - cbioportal-database
      - cbioportal-session
     networks:
      - cbio-net
-    command: /bin/sh -c "java -Xms2g -Xmx4g -Dauthenticate=noauthsessionservice -Dsession.service.url=http://cbioportal-session:5000/api/sessions/my_portal/ -jar webapp-runner.jar -AmaxHttpHeaderSize=16384 -AconnectionTimeout=20000 --enable-compression /cbioportal-webapp"
+    # TODO: servlet-api should be excluded from deps in mvn, the removal below is just a quick fix
+    # This might be helpful: https://stackoverflow.com/questions/36233626
+    command: /bin/sh -c "rm -rf /cbioportal-webapp/lib/servlet-api-2.5.jar && java -Xms2g -Xmx4g -cp '/cbioportal-webapp:/cbioportal-webapp/lib/*' org.cbioportal.PortalApplication --authenticate=false --session.service.url=http://cbioportal-session:5000/api/sessions/my_portal/"
   cbioportal-database:
     restart: unless-stopped
     image: ${DOCKER_IMAGE_MYSQL}
