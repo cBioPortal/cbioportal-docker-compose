@@ -6,7 +6,7 @@ In this folder is some additional configuration that can be useful for local dev
 
 These steps should work for spinning up keycloak for use with the Spring Boot refactoring of cBioPortal (see [RFC72](https://docs.google.com/document/d/1SoFaiQ-UGdXXSmkl0-lKEAZz3PCBp5zgJ9US0JhJmrk/edit) and related ticket https://github.com/cBioPortal/cbioportal/issues/10356). It has been tested with the `demo-rfc72` image.
 
-1. Run components needed for local development (cbioportal database, session service, keycloak).
+1. Navigate to the Root folder and run components needed for local development (cbioportal database, session service, keycloak).
 These services have portal open for external connection (resp. 3306, 5000, 8084):
 
 ```

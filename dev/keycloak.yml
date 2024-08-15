@@ -6,12 +6,12 @@ services:
     networks:
     - kc-net
     container_name: keycloak
-    image: jboss/keycloak:16.1.1
+    image: quay.io/keycloak/keycloak:16.1.1
     restart: unless-stopped
     depends_on:
     - kcdb
     volumes:
-    - ./keycloak-config.json:/tmp/realm.json:ro
+    - ./dev/keycloak-config.json:/tmp/realm.json:ro
     ports:
     - "8084:8080"
     environment:
