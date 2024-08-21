@@ -1,0 +1,66 @@
+version: '3'
+
+services:
+  cbioportal:
+    restart: unless-stopped
+    image: ${DOCKER_IMAGE_CBIOPORTAL}
+    container_name: cbioportal-container
+    environment:
+      SHOW_DEBUG_INFO: "true"
+      PORTAL_HOME: "/cbioportal-webapp"
+    ports:
+      - "8080:8080"
+    volumes:
+     - ./study:/study/
+     - ./config/application.properties:/cbioportal-webapp/application.properties:ro
+    depends_on:
+     - cbioportal-database
+     - cbioportal-session
+    networks:
+     - cbio-net
+    # TODO: servlet-api should be excluded from deps in mvn, the removal below is just a quick fix
+    # This might be helpful: https://stackoverflow.com/questions/36233626
+    command: /bin/sh -c "rm -rf /cbioportal-webapp/lib/servlet-api-2.5.jar && java -Xms2g -Xmx4g -jar /cbioportal-webapp/app.jar -spring.config.location=cbioportal-webapp/application.properties --authenticate=false --session.service.url=http://cbioportal-session:5000/api/sessions/my_portal/"
+  cbioportal-database:
+    restart: unless-stopped
+    image: ${DOCKER_IMAGE_MYSQL}
+    container_name: cbioportal-database-container
+    environment:
+      MYSQL_DATABASE: cbioportal
+      MYSQL_USER: cbio_user
+      MYSQL_PASSWORD: somepassword
+      MYSQL_ROOT_PASSWORD: somepassword
+    volumes:
+     - ./data/cgds.sql:/docker-entrypoint-initdb.d/cgds.sql:ro
+     - ./data/seed.sql.gz:/docker-entrypoint-initdb.d/seed.sql.gz:ro
+     - cbioportal_mysql_data:/var/lib/mysql
+    networks:
+     - cbio-net
+  cbioportal-session:
+    restart: unless-stopped
+    image: ${DOCKER_IMAGE_SESSION_SERVICE}
+    container_name: cbioportal-session-container
+    environment:
+      SERVER_PORT: 5000
+      JAVA_OPTS: -Dspring.data.mongodb.uri=mongodb://cbioportal-session-database:27017/session-service
+    depends_on:
+      - cbioportal-session-database
+    networks:
+      - cbio-net
+  cbioportal-session-database:
+    restart: unless-stopped
+    image: mongo:4.2
+    container_name: cbioportal-session-database-container
+    environment:
+      MONGO_INITDB_DATABASE: session_service
+    volumes:
+      - cbioportal_mongo_data:/data/db
+    networks:
+      - cbio-net
+
+networks:
+  cbio-net: 
+  
+volumes:
+  cbioportal_mysql_data:
+  cbioportal_mongo_data:
