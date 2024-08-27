@@ -12,7 +12,7 @@ docker compose up
 ```
 If you are developing and want to expose the MySQL database for inspection through a program like Sequel Pro, run:
 ```
-docker compose -f docker-compose.yml -f open-ports.yml up
+docker compose -f docker-compose.yml -f dev/open-ports.yml up
 ```
 In a different terminal import a study
 ```
