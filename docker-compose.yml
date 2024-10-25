@@ -25,6 +25,7 @@ services:
     restart: unless-stopped
     image: ${DOCKER_IMAGE_MYSQL}
     container_name: cbioportal-database-container
+    command: --local-infile=1
     environment:
       MYSQL_DATABASE: cbioportal
       MYSQL_USER: cbio_user
@@ -59,8 +60,8 @@ services:
       - cbio-net
 
 networks:
-  cbio-net: 
-  
+  cbio-net:
+
 volumes:
   cbioportal_mysql_data:
   cbioportal_mongo_data:

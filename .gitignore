@@ -4,3 +4,4 @@ data/*
 study/*
 config/portal.properties
 !*.sh
+config/application.properties
