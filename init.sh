@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+
+# Load all environment variables
+set -o allexport
+source '.env'
+set +o allexport
+
 for d in config data study; do
     cd $d; ./init.sh
     cd ..
