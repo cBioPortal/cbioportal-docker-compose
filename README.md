@@ -70,14 +70,15 @@ docker compose up
 
 which will start the v3.1.0 portal version rather than the newer default version.
 
-### Run the 'web-shenandoah' cBioPortal image
+### Run the 'web-shenandoah' cBioPortal image (Experimental)
+Note: This feature is currently experimental and may not work as expected.
 
 A web-only version of cBioPortal (suffixed -web-shenandoah) can be run using docker compose by declaring the `DOCKER_IMAGE_CBIOPORTAL`
 environmental variable to point to the corresponding image:
 
 ```
 export DOCKER_IMAGE_CBIOPORTAL=cbioportal/cbioportal:6.0.20-web-shenandoah
-docker compose -f docker-compose.yml -f docker-compose.web.yml up
+docker compose -f docker-compose.yml -f dev/docker-compose.web.yml up
 ```
 
 which will start the v6.0.20-web-shenandoah version rather than the newest default version.
