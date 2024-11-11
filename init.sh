@@ -5,6 +5,14 @@ set -o allexport
 source '.env'
 set +o allexport
 
+# Load dev environment variables
+if [ $# -ge 1 ] && [ "$1" = "--dev" ]; then
+  set -o allexport;
+  source '.env.dev';
+  set +o allexport;
+fi
+
+
 for d in config data study; do
     cd $d; ./init.sh
     cd ..
