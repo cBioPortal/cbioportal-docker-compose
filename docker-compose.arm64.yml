@@ -1,7 +1,5 @@
 version: '3'
 
 services:
-  cbioportal-database:
-    image: biarms/mysql:5.7
   cbioportal-session-database:
     image: mongo:4.2
