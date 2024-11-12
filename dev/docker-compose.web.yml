@@ -6,4 +6,22 @@ version: '3'
 
 services:
   cbioportal:
-    command: /bin/sh -c "rm -rf /cbioportal-webapp/lib/servlet-api-2.5.jar && java -Xms2g -Xmx4g -jar /cbioportal-webapp/app.jar -spring.config.location=cbioportal-webapp/application.properties --authenticate=false --session.service.url=http://cbioportal-session:5000/api/sessions/my_portal/"
+    env_file:
+      - path: ./.env
+        required: true
+    command: /bin/sh -c "
+      rm -rf /cbioportal-webapp/lib/servlet-api-2.5.jar && 
+      java 
+      -Xms2g 
+      -Xmx4g 
+      -jar /cbioportal-webapp/app.jar  
+      --authenticate=false 
+      --session.service.url=http://cbioportal-session:5000/api/sessions/my_portal/
+      --db.user=$${DB_MYSQL_USERNAME}
+      --db.password=$${DB_MYSQL_PASSWORD}
+      --spring.datasource.driver-class-name=com.mysql.jdbc.Driver
+      --spring.jpa.database-platform=org.hibernate.dialect.MySQL5InnoDBDialect
+      --spring.datasource.url=$${DB_MYSQL_URL}
+      --spring.datasource.username=$${DB_MYSQL_USERNAME}
+      --spring.datasource.password=$${DB_MYSQL_PASSWORD}
+      "
