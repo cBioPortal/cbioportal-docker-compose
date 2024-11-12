@@ -24,4 +24,12 @@ services:
       --spring.datasource.url=$${DB_MYSQL_URL}
       --spring.datasource.username=$${DB_MYSQL_USERNAME}
       --spring.datasource.password=$${DB_MYSQL_PASSWORD}
+      --spring.datasource.mysql.url=$${DB_MYSQL_URL}
+      --spring.datasource.mysql.username=$${DB_MYSQL_USERNAME}
+      --spring.datasource.mysql.password=$${DB_MYSQL_PASSWORD}
+      --spring.datasource.mysql.driver-class-name=com.mysql.jdbc.Driver
+      --spring.datasource.clickhouse.url=$${DB_CLICKHOUSE_URL}
+      --spring.datasource.clickhouse.username=$${DB_CLICKHOUSE_USERNAME}
+      --spring.datasource.clickhouse.password=$${DB_CLICKHOUSE_PASSWORD}
+      --spring.datasource.clickhouse.driver-class-name=com.clickhouse.jdbc.ClickHouseDriver
       "
