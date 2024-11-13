@@ -8,7 +8,7 @@ services:
   cbioportal:
     env_file:
       - path: ./.env
-        required: true
+        required: false
     command: /bin/sh -c "
       rm -rf /cbioportal-webapp/lib/servlet-api-2.5.jar && 
       java 
