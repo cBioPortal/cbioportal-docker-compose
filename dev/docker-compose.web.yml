@@ -16,7 +16,7 @@ services:
       -Xmx4g 
       -jar /cbioportal-webapp/app.jar  
       --authenticate=false 
-      --session.service.url=http://cbioportal-session:5000/api/sessions/my_portal/
+      --session.service.url=http://cbioportal-session:5001/api/sessions/my_portal/
       --db.user=$${DB_MYSQL_USERNAME}
       --db.password=$${DB_MYSQL_PASSWORD}
       --spring.datasource.driver-class-name=com.mysql.jdbc.Driver
