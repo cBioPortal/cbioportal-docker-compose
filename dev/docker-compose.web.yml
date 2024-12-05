@@ -9,8 +9,6 @@ services:
     env_file:
       - path: ./.env
         required: false
-    environment:
-      - CLICKHOUSE_MODE=false
     command: /bin/sh -c "
       rm -rf /cbioportal-webapp/lib/servlet-api-2.5.jar && 
       java 
@@ -34,5 +32,5 @@ services:
       --spring.datasource.clickhouse.username=$${DB_CLICKHOUSE_USERNAME}
       --spring.datasource.clickhouse.password=$${DB_CLICKHOUSE_PASSWORD}
       --spring.datasource.clickhouse.driver-class-name=com.clickhouse.jdbc.ClickHouseDriver
-      --clickhouse_mode=$${CLICKHOUSE_MODE}
+      --clickhouse_mode=$${CLICKHOUSE_MODE:-false}
       "
