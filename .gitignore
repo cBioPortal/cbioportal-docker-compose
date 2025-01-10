@@ -3,4 +3,7 @@ docker-compose.override.yml
 data/*
 study/*
 config/portal.properties
+config/application.properties
 !*.sh
+.idea
+.env.*
