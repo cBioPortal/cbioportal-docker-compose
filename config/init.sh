@@ -6,7 +6,7 @@ VERSION=$(grep DOCKER_IMAGE_CBIOPORTAL ../.env | tail -n 1 | cut -d '=' -f 2-)
 # This is a hack. Docker run doesn't escape '&' but docker compose does.
 sed 's/&/\\&/g' ../.env > ../.env.temp
 
-docker run --rm -it --env-file ../.env.temp $VERSION bin/sh -c 'cat /cbioportal-webapp/application.properties |
+docker run --rm -i --env-file ../.env.temp $VERSION bin/sh -c 'cat /cbioportal-webapp/application.properties |
     sed "s|spring.datasource.password=.*|spring.datasource.password=${DB_MYSQL_PASSWORD}|" | \
     sed "s|spring.datasource.username=.*|spring.datasource.username=${DB_MYSQL_USERNAME}|" | \
     sed "s|spring.datasource.url=.*|spring.datasource.url=${DB_MYSQL_URL}|" | \
