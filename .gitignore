@@ -7,3 +7,5 @@ config/application.properties
 !*.sh
 .idea
 .env.*
+dev/keycloak/idp-metadata.xml
+dev/keycloak/keycloak-config-generated.json
