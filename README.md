@@ -81,6 +81,8 @@ docker compose -f docker-compose.yml -f dev/docker-compose.web.yml up
 
 which will start the v6.0.20-web-shenandoah version rather than the newest default version.
 
+### Keycloak Authentication
+To set up a keycloak server with your cBioPortal instance for development purposes, check out the [documentation](./dev/README.md).
 
 ### Change the heap size
 #### Web app
