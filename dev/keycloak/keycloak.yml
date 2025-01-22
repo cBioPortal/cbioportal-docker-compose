@@ -38,7 +38,7 @@ services:
   kcdb:
     networks:
       - cbio-net
-    image: mysql:8.0
+    image: ${DOCKER_IMAGE_MYSQL}
     container_name: kcdb
     restart: unless-stopped
     volumes:
