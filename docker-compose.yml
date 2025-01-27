@@ -12,7 +12,7 @@ services:
       - "8080:8080"
     volumes:
      - ./study:/study/
-     - ./config/application.properties:/cbioportal-webapp/application.properties:ro
+     - ${APPLICATION_PROPERTIES_PATH:-./config/application.properties}:/cbioportal-webapp/application.properties:ro
     depends_on:
      - cbioportal-database
      - cbioportal-session
