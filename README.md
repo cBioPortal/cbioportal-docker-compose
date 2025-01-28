@@ -14,15 +14,6 @@ If you are developing and want to expose the MySQL database for inspection throu
 ```
 docker compose -f docker-compose.yml -f dev/open-ports.yml up
 ```
-In a different terminal import a study
-```
-docker compose exec cbioportal metaImport.py -u http://cbioportal:8080 -s study/lgg_ucsf_2014/ -o
-```
-
-Restart the cbioportal container after importing:
-```
-docker compose restart cbioportal
-```
 
 The compose file uses docker volumes which persist data between reboots. To completely remove all data run:
 
@@ -31,6 +22,19 @@ docker compose down -v
 ```
 
 If you were able to successfully set up a local installation of cBioPortal, please add it here: https://www.cbioportal.org/installations. Thank you!
+
+## Loading custom studies
+By default, the cbioportal docker compose setup comes preloaded with the `lgg_ucsf_2014` study, which is imported as part of the `DOCKER_IMAGE_MYSQL` environment variable [here](.env). If you want to load custom studies, run the following commands.
+```shell
+# Start docker compose if not already running
+docker compose up
+
+# In a separate terminal, import custom study
+docker compose exec cbioportal metaImport.py -u http://cbioportal:8080 -s study/lgg_ucsf_2014/ -o
+
+# Restart cBioPortal
+docker compose restart cbioportal
+```
 
 ## Known issues
 
