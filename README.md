@@ -10,6 +10,8 @@ database needs to import some data.
 ```
 docker compose up
 ```
+The cbioportal application should now be running at [localhost:8080](localhost:8080), with the one of the studies already loaded in it.
+
 If you are developing and want to expose the MySQL database for inspection through a program like Sequel Pro, run:
 ```
 docker compose -f docker-compose.yml -f dev/open-ports.yml up
