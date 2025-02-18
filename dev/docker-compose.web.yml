@@ -33,4 +33,5 @@ services:
       --spring.datasource.clickhouse.password=$${DB_CLICKHOUSE_PASSWORD}
       --spring.datasource.clickhouse.driver-class-name=com.clickhouse.jdbc.ClickHouseDriver
       --clickhouse_mode=$${APP_CLICKHOUSE_MODE:-false}
+      $${APP_CUSTOM_ARGS}
       "
