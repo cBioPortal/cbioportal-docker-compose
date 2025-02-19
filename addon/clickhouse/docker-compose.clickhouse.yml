@@ -1,0 +1,51 @@
+version: '3'
+
+services:
+  cbioportal:
+    depends_on:
+      - cbioportal-clickhouse-database
+    environment:
+      APP_CLICKHOUSE_MODE: true
+  cbioportal-clickhouse-database:
+    restart: unless-stopped
+    image: ${DOCKER_IMAGE_CLICKHOUSE}
+    container_name: cbioportal-database-clickhouse-container
+    environment:
+      CLICKHOUSE_DB: ${DB_CLICKHOUSE_DB_NAME}
+      CLICKHOUSE_USER: ${DB_CLICKHOUSE_USERNAME}
+      CLICKHOUSE_PASSWORD: ${DB_CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    volumes:
+      - cbioportal_clickhouse_data:/var/lib/clickhouse
+    networks:
+      - cbio-net
+  cbioportal-clickhouse-importer:
+    restart: unless-stopped
+    image: ${DOCKER_IMAGE_CLICKHOUSE_IMPORTER}
+    container_name: cbioportal-clickhouse-importer-container
+    environment:
+      MYSQL_DB: ${DB_MYSQL_DB_NAME}
+      MYSQL_USER: ${DB_MYSQL_USERNAME}
+      MYSQL_PASSWORD: ${DB_MYSQL_PASSWORD}
+      MYSQL_HOST: cbioportal-database
+      MYSQL_PORT: 3306
+      MYSQL_SERVER_ADDITIONAL_ARGS: ?useSSL=false\&allowPublicKeyRetrieval=true
+      CLICKHOUSE_DB: ${DB_CLICKHOUSE_DB_NAME}
+      CLICKHOUSE_USER: ${DB_CLICKHOUSE_USERNAME}
+      CLICKHOUSE_PASSWORD: ${DB_CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_HOST: cbioportal-clickhouse-database
+      CLICKHOUSE_PORT: 9000
+      CLICKHOUSE_SERVER_ADDITIONAL_ARGS:
+      CLICKHOUSE_MAX_MEM: 1000000000
+    volumes:
+      - ./addon/clickhouse/init.sh:/workdir/init.sh
+      - ./addon/clickhouse/sync-databases.sh:/workdir/sync-databases.sh
+    depends_on:
+      - cbioportal-clickhouse-database
+      - cbioportal-database
+    command: [ "bash", "/workdir/init.sh" ]
+    networks:
+      - cbio-net
+
+volumes:
+  cbioportal_clickhouse_data:
