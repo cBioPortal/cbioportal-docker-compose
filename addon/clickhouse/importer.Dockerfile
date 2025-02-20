@@ -36,13 +36,23 @@ RUN ARCH=$(uname -m) && \
         echo "Unsupported architecture: $ARCH" && exit 1; \
     fi && \
     curl -LO "$SLING_URL" && \
-    tar xf sling_linux_*.tar.gz && \
+    tar xf $(basename "$SLING_URL") && \
     chmod +x sling && \
     mv sling /usr/local/bin/
 
-# Clone cbioportal-core
+# Clone cbioportal-core (locked to a single commit)
+ARG OWNER
+ARG REPO
+ARG BRANCH
+ARG COMMIT
 RUN \
     mkdir /workdir && \
-    git clone --single-branch -b clickhouse-dependent-import-process 'https://github.com/sheridancbio/cbioportal-core.git' && \
-    cp cbioportal-core/scripts/clickhouse_import_support/* /workdir && \
+    git clone --single-branch -b $BRANCH "https://github.com/$OWNER/$REPO.git" && \
+    cd $REPO && \
+    git checkout $COMMIT && \
+    if [ "$(git rev-parse HEAD)" != "$COMMIT" ]; then \
+      echo "ERROR: Unable to checkout given commit: $COMMIT";  \
+      exit 1; \
+    fi && \
+    cp scripts/clickhouse_import_support/* /workdir && \
     chmod +x /workdir/*.sh
