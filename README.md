@@ -34,9 +34,29 @@ docker compose up
 # In a separate terminal, import custom study
 docker compose exec cbioportal metaImport.py -u http://cbioportal:8080 -s study/lgg_ucsf_2014/ -o
 
+# Sync clickhouse (ONLY for clickhouse mode, see below)
+docker compose exec cbioportal-clickhouse-importer bash /workdir/sync-databases.sh
+
 # Restart cBioPortal
 docker compose restart cbioportal
 ```
+
+## Clickhouse Mode
+For cBioPortal instances with large cohorts (>100K samples), we developed a "Clickhouse mode" of the Study View. This mode uses Clickhouse as an additional database next to MySQL for 10x faster querying (see [video](https://www.youtube.com/watch?v=8PAJRCeycU4)). The mode is experimental and is currently used only by the public-facing [GENIE instance](https://genie.cbioportal.org). We plan to roll it out to other portals later this year (see [roadmap ticket](https://github.com/orgs/cBioPortal/projects/16?query=sort%3Aupdated-desc+is%3Aopen&pane=issue&itemId=92222076&issue=cBioPortal%7Croadmap%7C1)). Follow the steps below to run cBioPortal Docker Compose in clickhouse mode.
+1. Modify [.env](.env) to use clickhouse-compatible release of cBioPortal.
+    ```text
+    ...
+    DOCKER_IMAGE_CBIOPORTAL=cbioportal/cbioportal:master
+    ...
+    ```
+2. Run init script
+    ```shell
+    ./init.sh
+    ```
+3. Start cBioPortal with clickhouse
+    ```shell
+    docker compose -f docker-compose.yml -f addon/clickhouse/docker-compose.clickhouse.yml up
+    ```
 
 ## Known issues
 

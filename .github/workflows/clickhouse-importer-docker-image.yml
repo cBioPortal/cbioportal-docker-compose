@@ -1,0 +1,46 @@
+name: Update Clickhouse Importer Docker Image
+
+on:
+  push:
+    paths:
+      - 'addon/clickhouse/importer.Dockerfile'
+      - '.github/workflows/clickhouse-importer-docker-image.yml'
+
+jobs:
+  update-clickhouse-importer-image:
+    runs-on: ubuntu-latest
+    if: github.repository == 'cbioportal/cbioportal-docker-compose'
+    env:
+      DOCKERHUB_REPO: 'cbioportal/clickhouse-importer'
+      PLATFORMS: 'linux/amd64,linux/arm64'
+      GIT_OWNER: 'cbioportal'
+      GIT_REPO: 'cbioportal-core'
+      GIT_BRANCH: 'main'
+      GIT_COMMIT: 'c36948564d85cdb83520021ac75426a2a451e4ce'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Set up docker buildx for multi-platform builds
+        run: |
+          docker pull docker.io/tonistiigi/binfmt:latest
+          docker run --rm --privileged docker.io/tonistiigi/binfmt:latest --install all
+          docker buildx use cbioportal-docker-compose > /dev/null || docker buildx create --name cbioportal-docker-compose --driver docker-container --use
+          docker buildx inspect --bootstrap --builder cbioportal-docker-compose
+      - name: Push new docker image
+        run: |
+          docker buildx build \
+            --push \
+            --platform $PLATFORMS \
+            --tag $DOCKERHUB_REPO:$GIT_COMMIT \
+            --build-arg OWNER=$GIT_OWNER \
+            --build-arg REPO=$GIT_REPO \
+            --build-arg BRANCH=$GIT_BRANCH \
+            --build-arg COMMIT=$GIT_COMMIT \
+            --file addon/clickhouse/importer.Dockerfile \
+            --cache-from type=gha \
+            --cache-to type=gha .
