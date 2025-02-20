@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'addon/clickhouse/importer.Dockerfile'
+      - '.github/workflows/clickhouse-importer-docker-image.yml'
 
 jobs:
   update-clickhouse-importer-image:
