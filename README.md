@@ -46,7 +46,7 @@ For cBioPortal instances with large cohorts (>100K samples), we developed a "Cli
 1. Modify [.env](.env) to use clickhouse-compatible release of cBioPortal.
     ```text
     ...
-    DOCKER_IMAGE_CBIOPORTAL=cbioportal/cbioportal:master
+    DOCKER_IMAGE_CBIOPORTAL=cbioportal/cbioportal:6.0.26
     ...
     ```
 2. Run init script
