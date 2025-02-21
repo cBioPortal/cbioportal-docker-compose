@@ -5,11 +5,8 @@ set -o pipefail
 # Set up a working directory
 mkdir -p /workdir && cd /workdir
 
-# Get properties file template
-cp /cbioportal-core/scripts/clickhouse_import_support/manage_cbioportal_databases_tool.properties /workdir/sling.properties
-
 # Add database credentials to properties file
-cat /workdir/sling.properties | \
+cat /workdir/manage_cbioportal_databases_tool.properties | \
 sed "s|mysql_database_name=.*|mysql_database_name=${MYSQL_DB}|" | \
 sed "s|mysql_server_username=.*|mysql_server_username=${MYSQL_USER}|" | \
 sed "s|mysql_server_password=.*|mysql_server_password=${MYSQL_PASSWORD}|" | \
