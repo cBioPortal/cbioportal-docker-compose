@@ -3,7 +3,7 @@ FROM ubuntu:22.04
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Install base pacakages
-RUN apt update && apt install -y \
+RUN apt-get update && apt-get install -y \
     git \
     curl \
     wget \
@@ -14,7 +14,7 @@ RUN apt update && apt install -y \
 
 # Install python
 RUN add-apt-repository ppa:deadsnakes/ppa && \
-    apt install -y python3.9 && \
+    apt-get install -y python3.9 && \
     ln -sf /usr/bin/python3.9 /usr/bin/python3
 
 # Install clickhouse cli
@@ -22,7 +22,7 @@ RUN curl https://clickhouse.com/ | sh && \
     ./clickhouse install
 
 # Install mysql
-RUN apt install -y mysql-client
+RUN apt-get install -y mysql-client
 
 # Install sling
 RUN curl -LO 'https://github.com/slingdata-io/sling-cli/releases/download/v1.2.14/sling_linux_arm64.tar.gz'
