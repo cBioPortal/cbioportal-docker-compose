@@ -41,6 +41,8 @@ docker compose exec cbioportal-clickhouse-importer bash /workdir/sync-databases.
 docker compose restart cbioportal
 ```
 
+The example study in the `study/` directory is based on hg19. When importing hg38 data, be sure to set `reference_genome: hg38` in the [meta_study.txt](https://docs.cbioportal.org/5.1-data-loading/data-loading/file-formats#meta-file-4).
+
 ## Clickhouse Mode
 For cBioPortal instances with large cohorts (>100K samples), we developed a "Clickhouse mode" of the Study View. This mode uses Clickhouse as an additional database next to MySQL for 10x faster querying (see [video](https://www.youtube.com/watch?v=8PAJRCeycU4)). The mode is experimental and is currently used only by the public-facing [GENIE instance](https://genie.cbioportal.org). We plan to roll it out to other portals later this year (see [roadmap ticket](https://github.com/orgs/cBioPortal/projects/16?query=sort%3Aupdated-desc+is%3Aopen&pane=issue&itemId=92222076&issue=cBioPortal%7Croadmap%7C1)). Follow the steps below to run cBioPortal Docker Compose in clickhouse mode.
 1. Modify [.env](.env) to use clickhouse-compatible release of cBioPortal.
@@ -57,24 +59,6 @@ For cBioPortal instances with large cohorts (>100K samples), we developed a "Cli
     ```shell
     docker compose -f docker-compose.yml -f addon/clickhouse/docker-compose.clickhouse.yml up
     ```
-
-## Known issues
-
-## Loading other seed databases
-### hg38 support
-To enable hg38 support. First delete any existing databases and containers:
-```
-docker compose down -v
-```
-Then run
-```
-init_hg38.sh
-```
-Followed by:
-```
-docker compose up
-```
-When loading hg38 data make sure to set `reference_genome: hg38` in [meta_study.txt](https://docs.cbioportal.org/5.1-data-loading/data-loading/file-formats#meta-file-4). The example study in `study/` is `hg19` based. 
 
 ## Example Commands
 ### Connect to the database
