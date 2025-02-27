@@ -10,7 +10,6 @@ services:
       - path: ./.env
         required: false
     command: /bin/sh -c "
-      rm -rf /cbioportal-webapp/lib/servlet-api-2.5.jar && 
       java 
       -Xms2g 
       -Xmx4g 
