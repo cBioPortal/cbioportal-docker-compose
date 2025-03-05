@@ -45,7 +45,7 @@ The example study in the `study/` directory is based on hg19. When importing hg3
 
 ## Clickhouse Mode
 For cBioPortal instances with large cohorts (>100K samples), we developed a "Clickhouse mode" of the Study View. This mode uses Clickhouse as an additional database next to MySQL for 10x faster querying (see [video](https://www.youtube.com/watch?v=8PAJRCeycU4)). The mode is experimental and is currently used only by the public-facing [GENIE instance](https://genie.cbioportal.org). We plan to roll it out to other portals later this year (see [roadmap ticket](https://github.com/orgs/cBioPortal/projects/16?query=sort%3Aupdated-desc+is%3Aopen&pane=issue&itemId=92222076&issue=cBioPortal%7Croadmap%7C1)). Follow the steps below to run cBioPortal Docker Compose in clickhouse mode.
-1. Modify [.env](.env) to use clickhouse-compatible release of cBioPortal.
+1. Modify [.env](./.env) to use clickhouse-compatible release of cBioPortal.
     ```text
     ...
     DOCKER_IMAGE_CBIOPORTAL=cbioportal/cbioportal:6.0.27
@@ -61,7 +61,7 @@ For cBioPortal instances with large cohorts (>100K samples), we developed a "Cli
     ```
 
 ### Clickhouse Cloud
-The Clickhouse setup mentioned above is fully compatible with a remote Clickhouse database. For production environments, you can set up a Clickhouse database using [Clickhouse Cloud](https://clickhouse.com/cloud) and update the clickhouse database credentials in the .env to match your database credentials. For the clickhouse sync step to work properly, your credentials should have both read and write permissions.
+The Clickhouse setup mentioned above is fully compatible with a remote Clickhouse database. For production environments, you can set up a Clickhouse database using [Clickhouse Cloud](https://clickhouse.com/cloud) and update the clickhouse database credentials in the [.env](./.env) to match your database credentials. For the clickhouse sync step to work properly, your credentials should have both read and write permissions.
 
 ## Example Commands
 ### Connect to the database
