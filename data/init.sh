@@ -12,12 +12,12 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 #this  Extracts Docker image version from .env
 VERSION=$(grep DOCKER_IMAGE_CBIOPORTAL "$SCRIPT_DIR/../.env" | tail -n 1 | cut -d '=' -f 2-)
 if [ -z "$VERSION" ]; then
-    echo "❌ Error: Unable to extract DOCKER_IMAGE_CBIOPORTAL version from .env." >&2
+    echo " Error: Unable to extract DOCKER_IMAGE_CBIOPORTAL version from .env." >&2
     exit 1
 fi
 
 # This Fetchs the schema file (cgds.sql)
-echo "⚙️ Fetching schema file (cgds.sql) from Docker image: $VERSION"
+echo " Fetching schema file (cgds.sql) from Docker image: $VERSION"
 if ! docker run --rm -i "$VERSION" cat /cbioportal/db-scripts/cgds.sql > "$SCRIPT_DIR/cgds.sql"; then
     echo "Error: Failed to fetch cgds.sql from Docker image." >&2
     exit 2
@@ -33,7 +33,7 @@ echo " Schema file (cgds.sql) fetched successfully."
 
 # This  Downloads the seed database (seed.sql.gz)
 SEED_URL="https://github.com/cBioPortal/datahub/raw/master/seedDB/seed-cbioportal_hg19_hg38_v2.13.1.sql.gz"
-echo "⚙️ Downloading seed database from: $SEED_URL"
+echo " Downloading seed database from: $SEED_URL"
 if ! wget -O "$SCRIPT_DIR/seed.sql.gz" "$SEED_URL"; then
     echo " Error: Failed to download seed database from $SEED_URL." >&2
     exit 4
