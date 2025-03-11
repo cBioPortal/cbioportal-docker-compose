@@ -8,6 +8,10 @@ fi
 
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Source utility functions
+source "$ROOT_DIR/utils.sh"
 
 
 DATAHUB_STUDIES="${DATAHUB_STUDIES:-lgg_ucsf_2014 msk_impact_2017}"

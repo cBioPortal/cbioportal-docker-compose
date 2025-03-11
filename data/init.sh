@@ -8,6 +8,10 @@ fi
 
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Source utility functions
+source "$ROOT_DIR/utils.sh"
 
 #this  Extracts Docker image version from .env
 VERSION=$(grep DOCKER_IMAGE_CBIOPORTAL "$SCRIPT_DIR/../.env" | tail -n 1 | cut -d '=' -f 2-)
@@ -31,11 +35,13 @@ fi
 
 echo " Schema file (cgds.sql) fetched successfully."
 
-# This  Downloads the seed database (seed.sql.gz)
+# Download the seed database (seed.sql.gz) with retries
 SEED_URL="https://github.com/cBioPortal/datahub/raw/master/seedDB/seed-cbioportal_hg19_hg38_v2.13.1.sql.gz"
-echo " Downloading seed database from: $SEED_URL"
-if ! wget -O "$SCRIPT_DIR/seed.sql.gz" "$SEED_URL"; then
-    echo " Error: Failed to download seed database from $SEED_URL." >&2
+echo "Downloading seed database from: $SEED_URL"
+
+# Use the download_with_retry function (5 retries, 15s delay)
+if ! download_with_retry "$SEED_URL" "$SCRIPT_DIR/seed.sql.gz" 5 15; then
+    echo "Error: Failed to download seed database after multiple attempts." >&2
     exit 4
 fi
 
