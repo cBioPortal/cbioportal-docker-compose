@@ -6,6 +6,7 @@ services:
       - cbioportal-clickhouse-database
     environment:
       APP_CLICKHOUSE_MODE: true
+      APP_SPRING_PROFILE: clickhouse
   cbioportal-clickhouse-database:
     restart: unless-stopped
     image: ${DOCKER_IMAGE_CLICKHOUSE}
