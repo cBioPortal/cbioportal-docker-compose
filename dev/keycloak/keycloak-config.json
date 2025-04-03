@@ -112,13 +112,17 @@
         {
             "name": "PUBLIC_STUDIES",
             "clientRoles": {
-                "cbioportal": []
+                "cbioportal": ["lgg_ucsf_2014"]
             }
         }
     ],
     "roles": {
         "client": {
-            "cbioportal": []
+            "cbioportal": [
+                {
+                    "name": "lgg_ucsf_2014"
+                }
+            ]
         }
     }
 }
