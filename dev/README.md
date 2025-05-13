@@ -25,6 +25,6 @@ wget http://localhost:8081/auth/realms/cbio/protocol/saml/descriptor -O ./dev/ke
 docker compose -f docker-compose.yml -f dev/keycloak/keycloak.yml up
 ```
 
-4. Access cBioPortal at [localhost:8080](localhost:8080). The login credentials are `testuser:P@assword1` (they can be found in [keycloak-config.json](keycloak/keycloak-config.json)).
+4. Access cBioPortal at [localhost:8080](localhost:8080). The login credentials are `testuser:P@ssword1` (they can be found in [keycloak-config.json](keycloak/keycloak-config.json)).
 
 ⚠️ Warning: Do not use this directly for production use as it takes several shortcuts to get a quick keycloak instance up. It e.g. does not use AuthN request signing
