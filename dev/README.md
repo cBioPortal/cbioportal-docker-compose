@@ -16,7 +16,7 @@ docker compose -f docker-compose.yml -f dev/keycloak/keycloak.yml up keycloak
 2. In another terminal, retrieve the SAML2 IDP metadata xml file:
 
 ```shell
-wget http://localhost:8081/auth/realms/cbio/protocol/saml/descriptor -O ./dev/keycloak/idp-metadata.xml
+wget http://localhost:8081/realms/cbio/protocol/saml/descriptor -O ./dev/keycloak/idp-metadata.xml
 ```
 
 3. Restart keycloak instance together with cBioPortal
