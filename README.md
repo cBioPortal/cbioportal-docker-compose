@@ -25,6 +25,44 @@ docker compose down -v
 
 If you were able to successfully set up a local installation of cBioPortal, please add it here: https://www.cbioportal.org/installations. Thank you!
 
+## Configuration System
+
+The initialization scripts support customization through a flexible configuration system:
+
+### Configuration Files
+
+1. **Built-in Defaults**: A set of sensible defaults is included in the code if no configuration files are present.
+
+2. **Site-wide Configuration** (optional):
+   - Copy `.env.defaults.template` to `.env.defaults`
+   - Modify values as needed for your environment
+   - This file should NOT be committed to version control
+
+3. **User-specific Configuration** (optional):
+   - Create or modify `.env` file with any values you want to override
+   - This takes precedence over `.env.defaults`
+   - This file should NOT be committed to version control
+
+### Available Configuration Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `DOWNLOAD_RETRY_COUNT` | Number of retry attempts for downloads | 3 |
+| `DOWNLOAD_RETRY_DELAY` | Delay in seconds between retries | 10 |
+| `DOWNLOAD_TIMEOUT` | Timeout in seconds for download operations | 30 |
+| `DATAHUB_STUDIES` | Space-separated list of studies to download | "lgg_ucsf_2014 msk_impact_2017" |
+| `DATAHUB_BASE_URL` | Base URL for datahub studies | "https://cbioportal-datahub.s3.amazonaws.com" |
+| `SEED_DB_URL` | URL for seed database | "https://github.com/cBioPortal/datahub/raw/master/seedDB/seed-cbioportal_hg19_hg38_v2.13.1.sql.gz" |
+| `VERBOSE_LOGS` | Enable verbose logging | true |
+| `DEBUG_MODE` | Enable debug mode (prints all commands) | false |
+
+
+## Setup Instructions
+1. Copy `.env.defaults.example` to `.env.defaults`:
+   ```sh
+   cp .env.defaults.example .env.defaults
+
+
 ## Loading custom studies
 By default, the cbioportal docker compose setup comes preloaded with the `lgg_ucsf_2014` study, which is imported as part of the `DOCKER_IMAGE_MYSQL` environment variable [here](.env). If you want to load custom studies, run the following commands.
 ```shell
