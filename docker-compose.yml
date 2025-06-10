@@ -28,6 +28,8 @@ services:
       MYSQL_USER: cbio_user
       MYSQL_PASSWORD: somepassword
       MYSQL_ROOT_PASSWORD: somepassword
+    ports:
+      - "3306:3306"
     volumes:
      - ./data/cgds.sql:/docker-entrypoint-initdb.d/cgds.sql:ro
      - ./data/seed.sql.gz:/docker-entrypoint-initdb.d/seed.sql.gz:ro
