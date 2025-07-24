@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - '.env'
+  workflow_dispatch:
 
 jobs:
   update-mysql-docker-image:
