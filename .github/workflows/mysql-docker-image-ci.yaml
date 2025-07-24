@@ -44,7 +44,7 @@ jobs:
       - name: Wait for cBioPortal to be ready
         run: |
           cd cbioportal-test
-          ./utils/check-connection.sh --url=localhost:8080 --interval=5 --max_retries=20 --insecure=false
+          ./utils/check-connection.sh --url=localhost:8080 --interval=5 --max_retries=30 --insecure=false
       - name: Import default study
         run: |
           cd cbioportal-docker-compose
@@ -52,7 +52,7 @@ jobs:
       - name: Dump overloaded mysql
         run: |
           cd cbioportal-test
-          ./sripts/dump-data.sh --url=localhost:8080 --out=$DUMP_PATH
+          ./scripts/dump-data.sh --url=localhost:8080 --out=$DUMP_PATH
       - name: Log in to DockerHub
         uses: docker/login-action@v3
         with:
