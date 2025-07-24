@@ -30,7 +30,7 @@ jobs:
         id: parse_version
         run: |
           cd cbioportal-docker-compose
-          VERSION=$(grep DOCKER_IMAGE_CBIOPORTAL .env | tail -n 1 | cut -d '=' -f 2-)
+          VERSION=$(grep DOCKER_IMAGE_CBIOPORTAL .env | tail -n 1 | cut -d ':' -f 2-)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       - name: Use base mysql image
         run: |
