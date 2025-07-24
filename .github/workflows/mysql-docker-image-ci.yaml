@@ -52,6 +52,7 @@ jobs:
       - name: Dump overloaded mysql
         run: |
           cd cbioportal-test
+          chmod +x scripts/dump-data.sh
           ./scripts/dump-data.sh --url=localhost:8080 --out=$DUMP_PATH
       - name: Log in to DockerHub
         uses: docker/login-action@v3
