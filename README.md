@@ -73,13 +73,18 @@ docker compose exec cbioportal-database \
 ## Advanced topics
 ### Run different cBioPortal version
 
-A different version of cBioPortal can be run using docker compose by declaring the `DOCKER_IMAGE_CBIOPORTAL`
-environmental variable. This variable can point a DockerHub image like so:
+This cBioPortal Docker Compose setup runs the latest release of cBioPortal. If you want to run more recent pre-releases, follow the steps below:
 
-```
-export DOCKER_IMAGE_CBIOPORTAL=cbioportal/cbioportal:3.1.0
-docker compose up
-```
+1. Modify `DOCKER_IMAGE_CBIOPORTAL` environmental variable to point to a valid [cBioPortal Docker Image](https://hub.docker.com/repository/docker/cbioportal/cbioportal/tags).
+   ```
+   export DOCKER_IMAGE_CBIOPORTAL=cbioportal/cbioportal:6.2.0
+   ```
+2. Modify `DOCKER_IMAGE_MYSQL` to use the corresponding [cBioPortal Database Docker Image](https://hub.docker.com/repository/docker/cbioportal/mysql/tags) that has the matching version. If a matching custom image is not available, you can also use the base `mysql:8.0` which is fully compatible with cBioPortal.
+   ```shell
+   export DOCKER_IMAGE_MYSQL=cbioportal/mysql:8.0-cbioportal-v6.2.0
+   # OR
+   export DOCKER_IMAGE_MYSQL=mysql:8.0
+   ```
 
 which will start the v3.1.0 portal version rather than the newer default version.
 
