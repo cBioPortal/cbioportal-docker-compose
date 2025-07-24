@@ -12,9 +12,9 @@ jobs:
     if: github.repository == 'cbioportal/cbioportal-docker-compose'
     env:
       CBIOPORTAL_TEST_REPO: 'cbioportal/cbioportal-test'
-      DOCKERHUB_REPO: 'cbioportal/mysql'
+      DOCKER_REPO: 'cbioportal/mysql'
       PLATFORMS: 'linux/amd64,linux/arm64'
-      DUMP_PATH: "$GITHUB_WORKSPACE/dump.sql"
+      DUMP_PATH: "./dump.sql"
       DEFAULT_STUDY: 'lgg_ucsf_2014'
     steps:
       - name: Checkout cbioportal-docker-compose
@@ -68,14 +68,8 @@ jobs:
           # Avoid segmentation faults, check https://github.com/docker/buildx/issues/1170#issuecomment-1159350550
           docker run --rm --privileged multiarch/qemu-user-static --reset -p yes -c yes
       - name: Push Docker Image
-        uses: docker/build-push-action@v6
-        with:
-          context: cbioportal-test/
-          push: true
-          tags: ${{ env.DOCKERHUB_REPO }}:8.0-cbioportal-v${{ steps.parse_version.outputs.version }}
-          build-args: |
-            DUMP_PATH=${{ env.DUMP_PATH }}
-            STUDY_NAMES=${{ env.DEFAULT_STUDY }}
-          file: cbioportal-test/docker/cbioportal-database.Dockerfile
-          cache-from: type=gha
-          cache-to: type=gha
+        env:
+          DOCKER_TAG: 8.0-cbioportal-v${{ steps.parse_version.outputs.version }}
+        run: |
+          cd cbioportal-test
+          docker buildx build --push --platform $PLATFORMS --tag $DOCKER_REPO:$DOCKER_TAG --build-arg DUMP_PATH=$DUMP_PATH --build-arg STUDY_NAMES=$DEFAULT_STUDY --file docker/cbioportal-database.Dockerfile --cache-from type=gha --cache-to type=gha .
