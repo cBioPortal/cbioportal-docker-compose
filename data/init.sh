@@ -1,11 +1,56 @@
 #!/usr/bin/env bash
 
+
+set -eo pipefail
+if [ "${DEBUG_MODE}" = "true" ]; then
+    set -x
+fi
+
+
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
-VERSION=$(grep DOCKER_IMAGE_CBIOPORTAL ../.env | tail -n 1 | cut -d '=' -f 2-)
+# Source utility functions
+source "$ROOT_DIR/utils.sh"
 
-# Get the schema
-docker run --rm -i $VERSION cat /cbioportal/db-scripts/cgds.sql > cgds.sql
+#this  Extracts Docker image version from .env
+VERSION=$(grep DOCKER_IMAGE_CBIOPORTAL "$SCRIPT_DIR/../.env" | tail -n 1 | cut -d '=' -f 2-)
+if [ -z "$VERSION" ]; then
+    echo " Error: Unable to extract DOCKER_IMAGE_CBIOPORTAL version from .env." >&2
+    exit 1
+fi
 
-# Download the combined hg19 + hg38 seed database
-wget -O seed.sql.gz "https://github.com/cBioPortal/datahub/raw/master/seedDB/seed-cbioportal_hg19_hg38_v2.13.1.sql.gz"
+# This Fetchs the schema file (cgds.sql)
+echo " Fetching schema file (cgds.sql) from Docker image: $VERSION"
+if ! docker run --rm -i "$VERSION" cat /cbioportal/db-scripts/cgds.sql > "$SCRIPT_DIR/cgds.sql"; then
+    echo "Error: Failed to fetch cgds.sql from Docker image." >&2
+    exit 2
+fi
+
+# This Validates that cgds.sql was created successfully
+if [ ! -f "$SCRIPT_DIR/cgds.sql" ]; then
+    echo " Error: cgds.sql file was not created." >&2
+    exit 3
+fi
+
+echo " Schema file (cgds.sql) fetched successfully."
+
+# Download the seed database (seed.sql.gz) with retries
+SEED_URL="https://github.com/cBioPortal/datahub/raw/master/seedDB/seed-cbioportal_hg19_hg38_v2.13.1.sql.gz"
+echo "Downloading seed database from: $SEED_URL"
+
+# Use the download_with_retry function (5 retries, 15s delay)
+if ! download_with_retry "$SEED_URL" "$SCRIPT_DIR/seed.sql.gz" 5 15; then
+    echo "Error: Failed to download seed database after multiple attempts." >&2
+    exit 4
+fi
+
+# this Validates that seed.sql.gz was downloaded successfully
+if [ ! -f "$SCRIPT_DIR/seed.sql.gz" ]; then
+    echo " Error: seed.sql.gz file was not downloaded." >&2
+    exit 5
+fi
+
+echo " Seed database (seed.sql.gz) downloaded successfully."
+
+echo "=== Data initialization completed successfully ==="
