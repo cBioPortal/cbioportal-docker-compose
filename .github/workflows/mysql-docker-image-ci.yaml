@@ -1,9 +1,9 @@
 name: Update MySQL Docker Image on New Release
 
 on:
-  push:
-    paths:
-      - '.env'
+#  push:
+#    paths:
+#      - '.env'
   workflow_dispatch:
 
 jobs:

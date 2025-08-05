@@ -17,6 +17,17 @@ If you are developing and want to expose the MySQL database for inspection throu
 docker compose -f docker-compose.yml -f dev/open-ports.yml up
 ```
 
+In a different terminal import a study
+```
+docker-compose exec cbioportal metaImport.py -u http://cbioportal:8080 -s study/lgg_ucsf_2014/ -o
+```
+The example study in the `study/` directory is based on hg19. When importing hg38 data, be sure to set `reference_genome: hg38` in the [meta_study.txt](https://docs.cbioportal.org/5.1-data-loading/data-loading/file-formats#meta-file-4).
+
+Restart the cbioportal container after importing
+```
+docker-compose restart cbioportal
+```
+
 The compose file uses docker volumes which persist data between reboots. To completely remove all data run:
 
 ```
@@ -24,24 +35,6 @@ docker compose down -v
 ```
 
 If you were able to successfully set up a local installation of cBioPortal, please add it here: https://www.cbioportal.org/installations. Thank you!
-
-## Loading custom studies
-By default, the cbioportal docker compose setup comes preloaded with the `lgg_ucsf_2014` study, which is imported as part of the `DOCKER_IMAGE_MYSQL` environment variable [here](.env). If you want to load custom studies, run the following commands.
-```shell
-# Start docker compose if not already running
-docker compose up
-
-# In a separate terminal, import custom study
-docker compose exec cbioportal metaImport.py -u http://cbioportal:8080 -s study/lgg_ucsf_2014/ -o
-
-# Sync clickhouse (ONLY for clickhouse mode, see below)
-docker compose exec cbioportal-clickhouse-importer bash /workdir/sync-databases.sh
-
-# Restart cBioPortal
-docker compose restart cbioportal
-```
-
-The example study in the `study/` directory is based on hg19. When importing hg38 data, be sure to set `reference_genome: hg38` in the [meta_study.txt](https://docs.cbioportal.org/5.1-data-loading/data-loading/file-formats#meta-file-4).
 
 ## Clickhouse Mode
 For cBioPortal instances with large cohorts (>100K samples), we developed a "Clickhouse mode" of the Study View. This mode uses Clickhouse as an additional database next to MySQL for 10x faster querying (see [video](https://www.youtube.com/watch?v=8PAJRCeycU4)). The mode is experimental and is currently used only by the public-facing [GENIE instance](https://genie.cbioportal.org). We plan to roll it out to other portals later this year (see [roadmap ticket](https://github.com/orgs/cBioPortal/projects/16?query=sort%3Aupdated-desc+is%3Aopen&pane=issue&itemId=92222076&issue=cBioPortal%7Croadmap%7C1)). Follow the steps below to run cBioPortal Docker Compose in clickhouse mode.
@@ -79,14 +72,10 @@ This cBioPortal Docker Compose setup runs the latest release of cBioPortal. If y
    ```
    export DOCKER_IMAGE_CBIOPORTAL=cbioportal/cbioportal:6.2.0
    ```
-2. Modify `DOCKER_IMAGE_MYSQL` to use the corresponding [cBioPortal Database Docker Image](https://hub.docker.com/repository/docker/cbioportal/mysql/tags) that has the matching version. If a matching custom image is not available, you can also use the base `mysql:8.0` which is fully compatible with cBioPortal.
+2. Restart cbioportal
    ```shell
-   export DOCKER_IMAGE_MYSQL=cbioportal/mysql:8.0-cbioportal-v6.2.0
-   # OR
-   export DOCKER_IMAGE_MYSQL=mysql:8.0
+   docker compose restart cbioportal
    ```
-
-which will start the v3.1.0 portal version rather than the newer default version.
 
 ### Run the 'web-shenandoah' cBioPortal image
 A web-only version of cBioPortal (suffixed -web-shenandoah) can be run using docker compose by declaring the `DOCKER_IMAGE_CBIOPORTAL`
