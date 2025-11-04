@@ -32,7 +32,7 @@ RUN ARCH=$(uname -m) && \
     chmod +x sling && \
     mv sling /usr/local/bin/
 
-# Clone cbioportal-core (locked to a single commit)
+# Clone cbioportal-core
 ARG BRANCH
 RUN \
     mkdir /workdir && \
