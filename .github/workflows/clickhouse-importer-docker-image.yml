@@ -13,10 +13,7 @@ jobs:
     env:
       DOCKERHUB_REPO: 'cbioportal/clickhouse-importer'
       PLATFORMS: 'linux/amd64,linux/arm64'
-      GIT_OWNER: 'cbioportal'
-      GIT_REPO: 'cbioportal-core'
-      GIT_BRANCH: 'main'
-      GIT_COMMIT: 'c36948564d85cdb83520021ac75426a2a451e4ce'
+      GIT_BRANCH: 'v1.0.15'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,12 +35,9 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ env.DOCKERHUB_REPO }}:latest,${{ env.DOCKERHUB_REPO }}:${{ env.GIT_COMMIT }}
+          tags: ${{ env.DOCKERHUB_REPO }}:latest,${{ env.DOCKERHUB_REPO }}:cbioportal-core-${{ env.GIT_BRANCH }}
           build-args: |
-            OWNER=${{ env.GIT_OWNER }}
-            REPO=${{ env.GIT_REPO }}
             BRANCH=${{ env.GIT_BRANCH }}
-            COMMIT=${{ env.GIT_COMMIT }}
           platforms: ${{ env.PLATFORMS }}
           file: addon/clickhouse/importer.Dockerfile
           cache-from: type=gha

@@ -33,20 +33,12 @@ RUN ARCH=$(uname -m) && \
     mv sling /usr/local/bin/
 
 # Clone cbioportal-core (locked to a single commit)
-ARG OWNER
-ARG REPO
 ARG BRANCH
-ARG COMMIT
 RUN \
     mkdir /workdir && \
-    git clone --single-branch -b $BRANCH "https://github.com/$OWNER/$REPO.git" && \
-    cd $REPO && \
-    git checkout $COMMIT && \
-    if [ "$(git rev-parse HEAD)" != "$COMMIT" ]; then \
-      echo "ERROR: Unable to checkout given commit: $COMMIT";  \
-      exit 1; \
-    fi && \
-    cp scripts/clickhouse_import_support/* /workdir && \
+    git clone --depth 1 --branch $BRANCH "https://github.com/cBioPortal/cbioportal-core.git" && \
+    cd cbioportal-core && \
+    cp -r scripts/clickhouse_import_support/* /workdir && \
     python3 /workdir/download_clickhouse_sql_scripts_py3.py /workdir/ && \
     chmod +x /workdir/*.sh && \
     rm -rf /cbioportal-core
