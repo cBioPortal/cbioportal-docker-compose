@@ -4,6 +4,7 @@ services:
   cbioportal:
     depends_on:
       - cbioportal-clickhouse-database
+      - cbioportal-clickhouse-importer
     environment:
       APP_CLICKHOUSE_MODE: true
       APP_SPRING_PROFILE: clickhouse
