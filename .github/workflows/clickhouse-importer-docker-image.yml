@@ -13,7 +13,8 @@ jobs:
     env:
       DOCKERHUB_REPO: 'cbioportal/clickhouse-importer'
       PLATFORMS: 'linux/amd64,linux/arm64'
-      GIT_BRANCH: 'localdb'
+      CBIOPORTAL_CORE_BRANCH: 'localdb'
+      CBIOPORTAL_BRANCH: 'v6.3.6'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,9 +36,10 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ env.DOCKERHUB_REPO }}:latest,${{ env.DOCKERHUB_REPO }}:cbioportal-core-${{ env.GIT_BRANCH }}
+          tags: ${{ env.DOCKERHUB_REPO }}:latest,${{ env.DOCKERHUB_REPO }}:cbioportal-core-${{ env.CBIOPORTAL_CORE_BRANCH }}
           build-args: |
-            BRANCH=${{ env.GIT_BRANCH }}
+            CBIOPORTAL_CORE_BRANCH=${{ env.CBIOPORTAL_CORE_BRANCH }}
+            CBIOPORTAL_BRANCH=${{ env.CBIOPORTAL_BRANCH }}
           platforms: ${{ env.PLATFORMS }}
           file: addon/clickhouse/importer.Dockerfile
           cache-from: type=gha

@@ -33,12 +33,13 @@ RUN ARCH=$(uname -m) && \
     mv sling /usr/local/bin/
 
 # Clone cbioportal-core
-ARG BRANCH
+ARG CBIOPORTAL_CORE_BRANCH
+ARG CBIOPORTAL_BRANCH
 RUN \
     mkdir /workdir && \
-    git clone --depth 1 --branch $BRANCH "https://github.com/cBioPortal/cbioportal-core.git" && \
+    git clone --depth 1 --branch $CBIOPORTAL_CORE_BRANCH "https://github.com/cBioPortal/cbioportal-core.git" && \
     cd cbioportal-core && \
     cp -r scripts/clickhouse_import_support/* /workdir && \
-    python3 /workdir/download_clickhouse_sql_scripts_py3.py /workdir/ && \
+    python3 /workdir/download_clickhouse_sql_scripts_py3.py --github_branch_name $CBIOPORTAL_BRANCH /workdir/ && \
     chmod +x /workdir/*.sh && \
     rm -rf /cbioportal-core

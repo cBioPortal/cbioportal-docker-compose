@@ -13,3 +13,5 @@ cd /workdir
 
 # Create derived tables
 ./create_derived_tables_in_clickhouse_database.sh sling.properties *.sql
+
+# --github_branch_name
