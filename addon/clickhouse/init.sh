@@ -25,5 +25,6 @@ sed "s|clickhouse_max_memory_use_target=.*|clickhouse_max_memory_use_target=${CL
 # Use sling to populate clickhouse database
 bash /workdir/sync-databases.sh
 echo "Clickhouse database successfully initialized. Portal Application is now ready!"
+touch /workdir/init-complete.txt
 
 tail -f /dev/null

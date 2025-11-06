@@ -13,8 +13,8 @@ jobs:
     env:
       DOCKERHUB_REPO: 'cbioportal/clickhouse-importer'
       PLATFORMS: 'linux/amd64,linux/arm64'
-      CBIOPORTAL_CORE_BRANCH: 'localdb'
-      CBIOPORTAL_BRANCH: 'v6.3.6'
+      CBIOPORTAL_CORE_BRANCH: 'main'
+      CBIOPORTAL_BRANCH: 'master'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
