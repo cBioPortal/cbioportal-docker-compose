@@ -30,15 +30,4 @@ RUN ARCH=$(uname -m) && \
     curl -LO "$SLING_URL" && \
     tar xf $(basename "$SLING_URL") && \
     chmod +x sling && \
-    mv sling /usr/local/bin/
-
-# Clone cbioportal-core
-ARG BRANCH
-RUN \
-    mkdir /workdir && \
-    git clone --depth 1 --branch $BRANCH "https://github.com/cBioPortal/cbioportal-core.git" && \
-    cd cbioportal-core && \
-    cp -r scripts/clickhouse_import_support/* /workdir && \
-    python3 /workdir/download_clickhouse_sql_scripts_py3.py /workdir/ && \
-    chmod +x /workdir/*.sh && \
-    rm -rf /cbioportal-core
+    mv sling /usr/local/bin
