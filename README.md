@@ -20,6 +20,9 @@ docker compose -f docker-compose.yml -f dev/open-ports.yml up
 In a different terminal import a study
 ```
 docker-compose exec cbioportal metaImport.py -u http://cbioportal:8080 -s study/lgg_ucsf_2014/ -o
+
+# Sync clickhouse (ONLY for clickhouse mode, see below)
+docker compose exec cbioportal-clickhouse-importer bash /workdir/sync-databases.sh
 ```
 The example study in the `study/` directory is based on hg19. When importing hg38 data, be sure to set `reference_genome: hg38` in the [meta_study.txt](https://docs.cbioportal.org/5.1-data-loading/data-loading/file-formats#meta-file-4).
 
@@ -52,6 +55,14 @@ For cBioPortal instances with large cohorts (>100K samples), we developed a "Cli
     ```shell
     docker compose -f docker-compose.yml -f addon/clickhouse/docker-compose.clickhouse.yml up
     ```
+4. Everytime a study is imported into cbioportal, run the following commands to sync the study with clickhouse
+   ```
+   # Import a study
+   docker-compose exec cbioportal metaImport.py -u http://cbioportal:8080 -s study/lgg_ucsf_2014/ -o
+
+   # Sync clickhouse
+   docker compose exec cbioportal-clickhouse-importer bash /workdir/sync-databases.sh
+   ```
 
 ### Clickhouse Cloud
 The Clickhouse setup mentioned above is fully compatible with a remote Clickhouse database. For production environments, you can set up a Clickhouse database using [Clickhouse Cloud](https://clickhouse.com/cloud) and update the clickhouse database credentials in the [.env](./.env) to match your database credentials. For the clickhouse sync step to work properly, your credentials should have both read and write permissions.

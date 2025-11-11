@@ -44,9 +44,14 @@ services:
     volumes:
       - ./addon/clickhouse/init.sh:/workdir/init.sh
       - ./addon/clickhouse/sync-databases.sh:/workdir/sync-databases.sh
+      - sql-files:/workdir/sql
     depends_on:
-      - cbioportal-clickhouse-database
-      - cbioportal-database
+      cbioportal-clickhouse-database:
+        condition: service_started
+      cbioportal-database:
+        condition: service_started
+      cbioportal-clickhouse-schema-extractor:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "test", "-f", "/workdir/init-complete.txt"]
       interval: 10s
@@ -55,6 +60,13 @@ services:
     command: [ "bash", "/workdir/init.sh" ]
     networks:
       - cbio-net
+  cbioportal-clickhouse-schema-extractor:
+    image: ${DOCKER_IMAGE_CBIOPORTAL}
+    container_name: cbioportal-clickhouse-schema-extractor-container
+    volumes:
+      - sql-files:/sql
+    command: sh -c "cp /cbioportal/db-scripts/clickhouse/*.sql /sql/ 2>/dev/null"
 
 volumes:
   cbioportal_clickhouse_data:
+  sql-files:
