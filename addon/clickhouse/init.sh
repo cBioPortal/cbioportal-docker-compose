@@ -5,6 +5,15 @@ set -eo pipefail
 # Set up a working directory
 mkdir -p /workdir && cd /workdir
 
+# Clone cBioPortal Core and copy over import scripts
+git clone --depth 1 --branch $CBIOPORTAL_CORE_BRANCH "https://github.com/cBioPortal/cbioportal-core.git"
+cp -r cbioportal-core/scripts/clickhouse_import_support/* /workdir
+chmod +x /workdir/*.sh
+rm -rf /cbioportal-core
+
+# Get a copy of the clickhouse sql files from the cbioportal backend (version defined in .env)
+docker run --rm -i $DOCKER_IMAGE_CBIOPORTAL sh -c "cat /cbioportal/db-scripts/clickhouse/*.sql /workdir/"
+
 # Add database credentials to properties file
 cat /workdir/manage_cbioportal_databases_tool.properties | \
 sed "s|mysql_database_name=.*|mysql_database_name=${MYSQL_DB}|" | \
