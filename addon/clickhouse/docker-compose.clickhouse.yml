@@ -39,7 +39,7 @@ services:
       CLICKHOUSE_PORT: 9000
       CLICKHOUSE_SERVER_ADDITIONAL_ARGS:
       CLICKHOUSE_MAX_MEM: 1000000000
-      CBIOPORTAL_CORE_BRANCH: ${CBIOPORTAL_CORE_BRANCH}
+      APP_CBIOPORTAL_CORE_BRANCH: ${APP_CBIOPORTAL_CORE_BRANCH}
     volumes:
       - ./addon/clickhouse/init.sh:/workdir/init.sh
       - ./addon/clickhouse/sync-databases.sh:/workdir/sync-databases.sh

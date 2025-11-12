@@ -7,7 +7,7 @@ mkdir -p /workdir && cd /workdir
 
 # Clone cBioPortal Core and copy over import scripts
 rm -rf cbioportal-core
-git clone --depth 1 --branch $CBIOPORTAL_CORE_BRANCH "https://github.com/cBioPortal/cbioportal-core.git"
+git clone --depth 1 --branch $APP_CBIOPORTAL_CORE_BRANCH "https://github.com/cBioPortal/cbioportal-core.git"
 cp -r cbioportal-core/scripts/clickhouse_import_support/* /workdir
 chmod +x /workdir/*.sh
 rm -rf cbioportal-core
