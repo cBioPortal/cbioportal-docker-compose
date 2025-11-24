@@ -17,6 +17,9 @@ services:
       CLICKHOUSE_USER: ${DB_CLICKHOUSE_USERNAME}
       CLICKHOUSE_PASSWORD: ${DB_CLICKHOUSE_PASSWORD}
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports:
+      - "8123:8123"
+      - "9000:9000"
     volumes:
       - cbioportal_clickhouse_data:/var/lib/clickhouse
     networks:
