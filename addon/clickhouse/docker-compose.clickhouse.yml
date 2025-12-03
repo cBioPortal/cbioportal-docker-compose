@@ -56,9 +56,9 @@ services:
         condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "test", "-f", "/workdir/init-complete.txt"]
-      interval: 10s
-      timeout: 3s
-      retries: 30
+      interval: 2m30s
+      timeout: 30s
+      retries: 300
     command: [ "bash", "/workdir/init.sh" ]
     networks:
       - cbio-net
