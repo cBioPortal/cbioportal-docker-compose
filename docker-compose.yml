@@ -37,6 +37,11 @@ services:
     networks:
      - cbio-net
     command: --local-infile=1
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -s -hcbioportal-database -P3306 -ucbio_user -psomepassword"]
+      interval: 10s
+      timeout: 3s
+      retries: 300
   cbioportal-session:
     restart: unless-stopped
     image: ${DOCKER_IMAGE_SESSION_SERVICE}

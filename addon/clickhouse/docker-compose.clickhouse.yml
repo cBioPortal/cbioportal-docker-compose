@@ -51,14 +51,14 @@ services:
       cbioportal-clickhouse-database:
         condition: service_started
       cbioportal-database:
-        condition: service_started
+        condition: service_healthy
       cbioportal-clickhouse-schema-extractor:
         condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "test", "-f", "/workdir/init-complete.txt"]
       interval: 10s
       timeout: 3s
-      retries: 30
+      retries: 300
     command: [ "bash", "/workdir/init.sh" ]
     networks:
       - cbio-net
