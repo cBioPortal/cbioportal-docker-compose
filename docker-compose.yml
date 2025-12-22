@@ -24,10 +24,10 @@ services:
     image: ${DOCKER_IMAGE_MYSQL}
     container_name: cbioportal-database-container
     environment:
-      MYSQL_DATABASE: cbioportal
-      MYSQL_USER: cbio_user
-      MYSQL_PASSWORD: somepassword
-      MYSQL_ROOT_PASSWORD: somepassword
+      MYSQL_DATABASE: ${DB_MYSQL_DB_NAME}
+      MYSQL_USER: ${DB_MYSQL_USERNAME}
+      MYSQL_PASSWORD: ${DB_MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_MYSQL_PASSWORD}
     ports:
       - "3306:3306"
     volumes:
