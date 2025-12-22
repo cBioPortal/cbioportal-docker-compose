@@ -24,10 +24,10 @@ services:
     image: ${DOCKER_IMAGE_MYSQL}
     container_name: cbioportal-database-container
     environment:
-      MYSQL_DATABASE: cbioportal
-      MYSQL_USER: cbio_user
-      MYSQL_PASSWORD: somepassword
-      MYSQL_ROOT_PASSWORD: somepassword
+      MYSQL_DATABASE: ${DB_MYSQL_DB_NAME}
+      MYSQL_USER: ${DB_MYSQL_USERNAME}
+      MYSQL_PASSWORD: ${DB_MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_MYSQL_PASSWORD}
     ports:
       - "3306:3306"
     volumes:
@@ -37,6 +37,11 @@ services:
     networks:
      - cbio-net
     command: --local-infile=1
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -s -h localhost -P3306 -u $$DB_MYSQL_USERNAME -p$$DB_MYSQL_PASSWORD"]
+      interval: 10s
+      timeout: 3s
+      retries: 300
   cbioportal-session:
     restart: unless-stopped
     image: ${DOCKER_IMAGE_SESSION_SERVICE}

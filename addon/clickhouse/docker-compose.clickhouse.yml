@@ -42,7 +42,7 @@ services:
       CLICKHOUSE_PORT: 9000
       CLICKHOUSE_SERVER_ADDITIONAL_ARGS:
       CLICKHOUSE_MAX_MEM: 1000000000
-      CBIOPORTAL_CORE_BRANCH: ${CBIOPORTAL_CORE_BRANCH}
+      APP_CBIOPORTAL_CORE_BRANCH: ${APP_CBIOPORTAL_CORE_BRANCH}
     volumes:
       - ./addon/clickhouse/init.sh:/workdir/init.sh
       - ./addon/clickhouse/sync-databases.sh:/workdir/sync-databases.sh
@@ -51,14 +51,14 @@ services:
       cbioportal-clickhouse-database:
         condition: service_started
       cbioportal-database:
-        condition: service_started
+        condition: service_healthy
       cbioportal-clickhouse-schema-extractor:
         condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "test", "-f", "/workdir/init-complete.txt"]
       interval: 10s
       timeout: 3s
-      retries: 30
+      retries: 300
     command: [ "bash", "/workdir/init.sh" ]
     networks:
       - cbio-net
