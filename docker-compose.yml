@@ -38,7 +38,7 @@ services:
      - cbio-net
     command: --local-infile=1
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -s -hcbioportal-database -P3306 -ucbio_user -psomepassword"]
+      test: ["CMD-SHELL", "mysqladmin ping -s -h localhost -P3306 -u $$DB_MYSQL_USERNAME -p$$DB_MYSQL_PASSWORD"]
       interval: 10s
       timeout: 3s
       retries: 300
