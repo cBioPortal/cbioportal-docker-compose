@@ -42,6 +42,7 @@ services:
       interval: 10s
       timeout: 3s
       retries: 300
+      start_period: 3m
   cbioportal-session:
     restart: unless-stopped
     image: ${DOCKER_IMAGE_SESSION_SERVICE}
