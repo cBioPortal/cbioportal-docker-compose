@@ -59,7 +59,6 @@ services:
       interval: 10s
       timeout: 3s
       retries: 300
-      start_period: 5m
     command: [ "bash", "/workdir/init.sh" ]
     networks:
       - cbio-net
