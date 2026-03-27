@@ -2,10 +2,8 @@
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-VERSION=$(grep DOCKER_IMAGE_CBIOPORTAL ../.env | tail -n 1 | cut -d '=' -f 2-)
+# Download the ClickHouse base schema (table definitions)
+wget -q -O cgds_clickhouse.sql "https://github.com/cBioPortal/seed_db_test/raw/main/seedDB/current/cgds_clickhouse.sql"
 
-# Get the schema
-docker run --rm -i $VERSION cat /cbioportal/db-scripts/cgds.sql > cgds.sql
-
-# Download the combined hg19 + hg38 seed database
-wget -O seed.sql.gz "https://github.com/cBioPortal/datahub/raw/refs/heads/master/seedDB/seed-cbioportal_hg19_hg38_v2.14.5.sql.gz"
+# Download the ClickHouse-compatible seed database (genes, cancer types, etc.)
+wget -O seed.sql.gz "https://github.com/cBioPortal/seed_db_test/raw/main/seedDB/current/seed-cbioportal_hg19_hg38_v2.14.5_1.0.9.sql.gz"
