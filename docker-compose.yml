@@ -37,7 +37,7 @@ services:
       - "8123:8123"
       - "9000:9000"
     volumes:
-      - ./data/cgds_clickhouse.sql:/data/cgds_clickhouse.sql:ro
+      - ./data/schema.sql:/data/schema.sql:ro
       - ./data/load_schema.sh:/docker-entrypoint-initdb.d/001_load_schema.sh:ro
       - ./data/seed.sql.gz:/data/seed.sql.gz:ro
       - ./data/load_seed.sh:/docker-entrypoint-initdb.d/002_load_seed.sh:ro
