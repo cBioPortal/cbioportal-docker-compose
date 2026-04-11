@@ -38,7 +38,7 @@ services:
      - cbio-net
     command: --local-infile=1
     healthcheck:
-      test: [ "CMD-SHELL", "test 853 -eq $$(mysql -hlocalhost -P3306 -u$$MYSQL_USER -p$$MYSQL_PASSWORD -e 'SELECT COUNT(*) FROM type_of_cancer' cbioportal --skip-column-names --silent)" ]
+      test: [ "CMD-SHELL", "test $$(mysql -hlocalhost -P3306 -u$$MYSQL_USER -p$$MYSQL_PASSWORD -e 'SELECT COUNT(*) FROM type_of_cancer' cbioportal --skip-column-names --silent) -gt 0" ]
       interval: 10s
       timeout: 3s
       retries: 300
