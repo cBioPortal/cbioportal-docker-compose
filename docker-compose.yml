@@ -52,7 +52,7 @@ services:
     env_file:
       - .env
     volumes:
-      - ./clickhouse-init.sh:/workdir/init.sh
+      - ./importer/entrypoint.sh:/workdir/init.sh
       - ./study:/study
       - sql-files:/workdir/sql
     depends_on:

@@ -10,17 +10,19 @@ if ! git lfs version &>/dev/null; then
 fi
 
 DATAHUB_DIR="${SCRIPT_DIR}/.datahub"
+trap 'rm -rf "${DATAHUB_DIR}"' EXIT
 
 GIT_LFS_SKIP_SMUDGE=1 git clone --depth 1 --filter=blob:none --sparse \
     https://github.com/cBioPortal/datahub.git "${DATAHUB_DIR}"
 
 cd "${DATAHUB_DIR}"
 git sparse-checkout set $(for s in ${DATAHUB_STUDIES}; do echo "public/$s"; done)
-git lfs pull
+INCLUDES=$(for s in ${DATAHUB_STUDIES}; do echo "public/$s/**"; done | tr '\n' ',' | sed 's/,$//')
+git lfs fetch -I "${INCLUDES}"
+git lfs checkout
 
 for study in ${DATAHUB_STUDIES}; do
     cp -r "public/${study}" "${SCRIPT_DIR}/"
 done
 
 cd "${SCRIPT_DIR}"
-rm -rf "${DATAHUB_DIR}"
