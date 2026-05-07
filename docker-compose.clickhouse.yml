@@ -3,18 +3,14 @@ services:
     depends_on:
       cbioportal-clickhouse-importer:
         condition: service_healthy
-    environment:
-      APP_CLICKHOUSE_MODE: true
-      APP_SPRING_PROFILE: clickhouse
+    env_file:
+      - .env
   cbioportal-clickhouse-database:
     restart: unless-stopped
     image: ${DOCKER_IMAGE_CLICKHOUSE}
     container_name: cbioportal-database-clickhouse-container
-    environment:
-      CLICKHOUSE_DB: ${DB_CLICKHOUSE_DB_NAME}
-      CLICKHOUSE_USER: ${DB_CLICKHOUSE_USERNAME}
-      CLICKHOUSE_PASSWORD: ${DB_CLICKHOUSE_PASSWORD}
-      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    env_file:
+      - .env
     ports:
       - "8123:8123"
       - "9000:9000"
@@ -29,19 +25,15 @@ services:
       - cbio-net
   cbioportal-clickhouse-importer:
     restart: unless-stopped
-    image: ${DOCKER_IMAGE_CLICKHOUSE_IMPORTER}
+    build:
+      context: ./importer
+      dockerfile: importer.Dockerfile
     container_name: cbioportal-clickhouse-importer-container
-    environment:
-      CLICKHOUSE_DB: ${DB_CLICKHOUSE_DB_NAME}
-      CLICKHOUSE_USER: ${DB_CLICKHOUSE_USERNAME}
-      CLICKHOUSE_PASSWORD: ${DB_CLICKHOUSE_PASSWORD}
-      CLICKHOUSE_HOST: cbioportal-clickhouse-database
-      CLICKHOUSE_PORT: 9000
-      CLICKHOUSE_SERVER_ADDITIONAL_ARGS:
-      CLICKHOUSE_MAX_MEM: 1000000000
-      APP_CBIOPORTAL_CORE_BRANCH: ${APP_CBIOPORTAL_CORE_BRANCH}
+    env_file:
+      - .env
     volumes:
-      - ./addon/clickhouse/init.sh:/workdir/init.sh
+      - ./clickhouse-init.sh:/workdir/init.sh
+      - ./study:/study
       - sql-files:/workdir/sql
     depends_on:
       cbioportal-clickhouse-database:

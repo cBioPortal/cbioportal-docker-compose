@@ -3,11 +3,8 @@ services:
     restart: unless-stopped
     image: ${DOCKER_IMAGE_CBIOPORTAL}
     container_name: cbioportal-container
-    environment:
-      SHOW_DEBUG_INFO: "true"
-      PORTAL_HOME: "/cbioportal-webapp"
-      APP_CLICKHOUSE_MODE: "true"
-      APP_SPRING_PROFILE: "clickhouse"
+    env_file:
+      - .env
     ports:
       - "8080:8080"
     volumes:
@@ -23,11 +20,8 @@ services:
     restart: unless-stopped
     image: ${DOCKER_IMAGE_CLICKHOUSE}
     container_name: cbioportal-database-clickhouse-container
-    environment:
-      CLICKHOUSE_DB: ${DB_CLICKHOUSE_DB_NAME}
-      CLICKHOUSE_USER: ${DB_CLICKHOUSE_USERNAME}
-      CLICKHOUSE_PASSWORD: ${DB_CLICKHOUSE_PASSWORD}
-      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    env_file:
+      - .env
     ports:
       - "8123:8123"
       - "9000:9000"
@@ -46,9 +40,10 @@ services:
     restart: unless-stopped
     image: ${DOCKER_IMAGE_SESSION_SERVICE}
     container_name: cbioportal-session-container
+    env_file:
+      - .env
     environment:
-      SERVER_PORT: 5001
-      JAVA_OPTS: -Dspring.data.mongodb.uri=mongodb://cbioportal-session-database:27017/session-service
+      JAVA_OPTS: ${SESSION_SERVICE_JAVA_OPTS}
     depends_on:
       - cbioportal-session-database
     networks:
@@ -58,8 +53,8 @@ services:
     restart: unless-stopped
     image: mongo:4.2
     container_name: cbioportal-session-database-container
-    environment:
-      MONGO_INITDB_DATABASE: session_service
+    env_file:
+      - .env
     volumes:
       - cbioportal_mongo_data:/data/db
     networks:
