@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   cbioportal:
     restart: unless-stopped
@@ -8,40 +6,42 @@ services:
     environment:
       SHOW_DEBUG_INFO: "true"
       PORTAL_HOME: "/cbioportal-webapp"
+      APP_CLICKHOUSE_MODE: "true"
+      APP_SPRING_PROFILE: "clickhouse"
     ports:
       - "8080:8080"
     volumes:
      - ./study:/study/
      - ${APPLICATION_PROPERTIES_PATH:-./config/application.properties}:/cbioportal-webapp/application.properties:ro
     depends_on:
-     - cbioportal-database
+     - cbioportal-clickhouse-database
      - cbioportal-session
     networks:
      - cbio-net
-    command: /bin/sh -c "java -Xms2g -Xmx4g -cp '/cbioportal-webapp:/cbioportal-webapp/lib/*' org.cbioportal.PortalApplication --spring.config.location=cbioportal-webapp/application.properties --authenticate=false --session.service.url=http://cbioportal-session:5001/api/sessions/my_portal/ --clickhouse_mode=$${APP_CLICKHOUSE_MODE:-false} --spring.profiles.active=$${APP_SPRING_PROFILE:-default}"
-  cbioportal-database:
+    command: /bin/sh -c "java -Xms2g -Xmx4g -jar /cbioportal-webapp/app.jar --spring.config.location=file:/cbioportal-webapp/application.properties --authenticate=false --session.service.url=http://cbioportal-session:5001/api/sessions/my_portal/ --clickhouse_mode=$${APP_CLICKHOUSE_MODE:-true} --spring.profiles.active=$${APP_SPRING_PROFILE:-default}"
+  cbioportal-clickhouse-database:
     restart: unless-stopped
-    image: ${DOCKER_IMAGE_MYSQL}
-    container_name: cbioportal-database-container
+    image: ${DOCKER_IMAGE_CLICKHOUSE}
+    container_name: cbioportal-database-clickhouse-container
     environment:
-      MYSQL_DATABASE: ${DB_MYSQL_DB_NAME}
-      MYSQL_USER: ${DB_MYSQL_USERNAME}
-      MYSQL_PASSWORD: ${DB_MYSQL_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${DB_MYSQL_PASSWORD}
+      CLICKHOUSE_DB: ${DB_CLICKHOUSE_DB_NAME}
+      CLICKHOUSE_USER: ${DB_CLICKHOUSE_USERNAME}
+      CLICKHOUSE_PASSWORD: ${DB_CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
     ports:
-      - "3306:3306"
+      - "8123:8123"
+      - "9000:9000"
     volumes:
-     - ./data/cgds.sql:/docker-entrypoint-initdb.d/cgds.sql:ro
-     - ./data/seed.sql.gz:/docker-entrypoint-initdb.d/seed.sql.gz:ro
-     - cbioportal_mysql_data:/var/lib/mysql
+      - ./data/clickhouse/:/docker-entrypoint-initdb.d/:ro
+      - cbioportal_clickhouse_data:/var/lib/clickhouse
     networks:
-     - cbio-net
-    command: --local-infile=1
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -s -h localhost -P3306 -u $$DB_MYSQL_USERNAME -p$$DB_MYSQL_PASSWORD"]
-      interval: 10s
-      timeout: 3s
-      retries: 300
+      - cbio-net
+  cbioportal-clickhouse-schema-extractor:
+    image: ${DOCKER_IMAGE_CBIOPORTAL}
+    container_name: cbioportal-clickhouse-schema-extractor-container
+    volumes:
+      - sql-files:/sql
+    command: sh -c "cd /tmp && jar xf /cbioportal-webapp/app.jar BOOT-INF/classes/db-scripts/clickhouse/clickhouse.sql && cp BOOT-INF/classes/db-scripts/clickhouse/*.sql /sql/"
   cbioportal-session:
     restart: unless-stopped
     image: ${DOCKER_IMAGE_SESSION_SERVICE}
@@ -53,6 +53,7 @@ services:
       - cbioportal-session-database
     networks:
       - cbio-net
+
   cbioportal-session-database:
     restart: unless-stopped
     image: mongo:4.2
@@ -66,7 +67,8 @@ services:
 
 networks:
   cbio-net:
-  
+
 volumes:
-  cbioportal_mysql_data:
+  cbioportal_clickhouse_data:
   cbioportal_mongo_data:
+  sql-files:

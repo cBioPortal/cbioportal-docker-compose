@@ -12,11 +12,6 @@ docker compose up
 ```
 The cbioportal application should now be running at [localhost:8080](localhost:8080), with the one of the studies already loaded in it.
 
-If you are developing and want to expose the MySQL database for inspection through a program like Sequel Pro, run:
-```
-docker compose -f docker-compose.yml -f dev/open-ports.yml up
-```
-
 In a different terminal import a study
 ```
 docker-compose exec cbioportal metaImport.py -u http://cbioportal:8080 -s study/lgg_ucsf_2014/ -o
@@ -39,8 +34,8 @@ If you were able to successfully set up a local installation of cBioPortal, plea
 ## Example Commands
 ### Connect to the database
 ```
-docker compose exec cbioportal-database \
-    sh -c 'mysql -hcbioportal-database -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"'
+docker compose exec cbioportal-clickhouse-database \
+    sh -c 'clickhouse-client -u "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" --database "$CLICKHOUSE_DB"'
 ```
 
 ## Advanced topics

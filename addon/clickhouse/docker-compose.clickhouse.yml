@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   cbioportal:
     depends_on:
@@ -22,6 +20,11 @@ services:
       - "9000:9000"
     volumes:
       - cbioportal_clickhouse_data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8123/ping || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
     networks:
       - cbio-net
   cbioportal-clickhouse-importer:
@@ -29,12 +32,6 @@ services:
     image: ${DOCKER_IMAGE_CLICKHOUSE_IMPORTER}
     container_name: cbioportal-clickhouse-importer-container
     environment:
-      MYSQL_DB: ${DB_MYSQL_DB_NAME}
-      MYSQL_USER: ${DB_MYSQL_USERNAME}
-      MYSQL_PASSWORD: ${DB_MYSQL_PASSWORD}
-      MYSQL_HOST: cbioportal-database
-      MYSQL_PORT: 3306
-      MYSQL_SERVER_ADDITIONAL_ARGS: ?useSSL=false\&allowPublicKeyRetrieval=true
       CLICKHOUSE_DB: ${DB_CLICKHOUSE_DB_NAME}
       CLICKHOUSE_USER: ${DB_CLICKHOUSE_USERNAME}
       CLICKHOUSE_PASSWORD: ${DB_CLICKHOUSE_PASSWORD}
@@ -45,12 +42,9 @@ services:
       APP_CBIOPORTAL_CORE_BRANCH: ${APP_CBIOPORTAL_CORE_BRANCH}
     volumes:
       - ./addon/clickhouse/init.sh:/workdir/init.sh
-      - ./addon/clickhouse/sync-databases.sh:/workdir/sync-databases.sh
       - sql-files:/workdir/sql
     depends_on:
       cbioportal-clickhouse-database:
-        condition: service_started
-      cbioportal-database:
         condition: service_healthy
       cbioportal-clickhouse-schema-extractor:
         condition: service_completed_successfully
@@ -67,7 +61,7 @@ services:
     container_name: cbioportal-clickhouse-schema-extractor-container
     volumes:
       - sql-files:/sql
-    command: sh -c "cp /cbioportal/db-scripts/clickhouse/*.sql /sql/ 2>/dev/null"
+    command: sh -c "cd /tmp && jar xf /cbioportal-webapp/app.jar BOOT-INF/classes/db-scripts/clickhouse/clickhouse.sql && cp BOOT-INF/classes/db-scripts/clickhouse/*.sql /sql/"
 
 volumes:
   cbioportal_clickhouse_data:

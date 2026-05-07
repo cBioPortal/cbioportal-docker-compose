@@ -10,8 +10,7 @@ RUN apt-get update && apt-get install -y -q --no-install-recommends \
     unzip \
     jq \
     build-essential \
-    software-properties-common \
-    mysql-client && \
+    software-properties-common && \
     rm -rf /var/lib/apt/lists/*
 
 # Install clickhouse cli
