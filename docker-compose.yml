@@ -43,18 +43,24 @@ services:
 
   cbioportal-clickhouse-importer:
     restart: unless-stopped
+    image: ${DOCKER_IMAGE_IMPORTER:-cbioportal-importer:local}
     build:
       context: .
-      dockerfile: importer/importer.Dockerfile
+      dockerfile: importer/Dockerfile
       args:
         CBIOPORTAL_CORE_BRANCH: ${APP_CBIOPORTAL_CORE_BRANCH}
     container_name: cbioportal-clickhouse-importer-container
+    environment:
+      - PORTAL_HOME=/cbioportal
     env_file:
       - .env
     volumes:
       - ./importer/entrypoint.sh:/workdir/init.sh
       - ./study:/study
       - sql-files:/workdir/sql
+      - ./data/schema.sql:/opt/schema.sql:ro
+      - ./data/seed.sql.gz:/opt/seed.sql.gz:ro
+      - ./config/application.properties:/cbioportal/application.properties:ro
     depends_on:
       cbioportal-clickhouse-database:
         condition: service_healthy

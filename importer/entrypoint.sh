@@ -18,7 +18,9 @@ echo "Importing studies..."
 cd /cbioportal-core/scripts
 for study in ${DATAHUB_STUDIES}; do
     echo "  Importing ${study}..."
-    python3 -m importer.metaImport -s /study/${study} -n -o
+    echo "$IMPORTER_PROPERTIES_FILEPATH"
+    python3 -m importer.metaImport -s /study/${study} -n -o \
+        -jvo="-Dspring.config.location=file:${IMPORTER_PROPERTIES_FILEPATH}"
 done
 cd /workdir
 
