@@ -3,7 +3,7 @@ set -eo pipefail
 
 mkdir -p /workdir && cd /workdir
 
-CH_CLIENT="clickhouse-client --host ${CLICKHOUSE_HOST} --port ${CLICKHOUSE_PORT} --user ${CLICKHOUSE_USER} --password ${CLICKHOUSE_PASSWORD} --database ${CLICKHOUSE_DB} --multiquery"
+CH_CLIENT="clickhouse-client --host ${CLICKHOUSE_HOST} --port ${CLICKHOUSE_PORT} --user ${CLICKHOUSE_USER} --password ${CLICKHOUSE_PASSWORD} --database ${CLICKHOUSE_DATABASE} --multiquery"
 
 # Step 1: Apply base schema
 echo "Applying base schema..."
