@@ -43,7 +43,7 @@ docker compose down -v
 
 ```
 docker compose exec cbioportal-clickhouse-database \
-    sh -c 'clickhouse-client -u "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" --database "$CLICKHOUSE_DATABASE"'
+    sh -c 'clickhouse-client -u "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" --database "$CLICKHOUSE_DB"'
 ```
 
 ### Import an additional study manually
