@@ -5,17 +5,7 @@ mkdir -p /workdir && cd /workdir
 
 CH_CLIENT="clickhouse-client --host ${CLICKHOUSE_HOST} --port ${CLICKHOUSE_NATIVE_PORT} --user ${CLICKHOUSE_USER} --password ${CLICKHOUSE_PASSWORD} --database ${CLICKHOUSE_DB} --multiquery"
 
-# Step 1: Apply base schema
-echo "Applying base schema..."
-$CH_CLIENT < /cbioportal/schema.sql
-echo "Schema applied successfully."
-
-# Step 2: Apply seed data
-echo "Applying seed data..."
-gunzip -c /cbioportal/seed.sql.gz | $CH_CLIENT
-echo "Database initialized with seed data."
-
-# Step 3: Run derived table script (necessary even though the db is empty for the website to work properly)
+# Run derived table script (necessary even though the db is empty for the website to work properly)
 echo "Running derived table script..."
 python3 /usr/local/bin/metaImport.py derive-tables
 echo "Derived tables initialized."
