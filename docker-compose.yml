@@ -14,7 +14,7 @@ services:
       - ./study:/study/
       - ./entrypoint.sh:/cbioportal/entrypoint.sh
 
-      - ./config/application.properties:/cbioportal-webapp/application.properties:ro
+      - ${APPLICATION_PROPERTIES_PATH:-./config/application.properties}:/cbioportal-webapp/application.properties:ro
       - ./config/log4j.properties:/cbioportal-webapp/log4j.properties:ro
       # We need to mount the derived table script into the cbioportal container
       # The metaImport script looks for it under $PORTAL_HOME
@@ -41,7 +41,7 @@ services:
       # Scripts in /docker-entrypoint-initdb.d are automatically run in alphabetical order
       - ./data/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
       - ./data/seed.sql.gz:/docker-entrypoint-initdb.d/02_seed.sql.gz:ro
-      - ./data/clickhouse_user_settings.xml:/etc/clickhouse-server/users.d/user_settings.xml:ro
+      - ${CLICKHOUSE_SETTINGS_PATH:-./data/clickhouse_user_settings.xml}:/etc/clickhouse-server/users.d/user_settings.xml:ro
       - cbioportal_clickhouse_data:/var/lib/clickhouse
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8123/ping || exit 1"]
