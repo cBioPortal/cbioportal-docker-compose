@@ -39,6 +39,7 @@ services:
       - "9000:9000"
     volumes:
       - ./data/clickhouse/:/docker-entrypoint-initdb.d/:ro
+      - ./data/clickhouse_user_settings.xml:/etc/clickhouse-server/users.d/user_settings.xml:ro
       - cbioportal_clickhouse_data:/var/lib/clickhouse
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8123/ping || exit 1"]
