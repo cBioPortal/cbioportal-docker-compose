@@ -4,7 +4,6 @@ data/*
 study/*
 config/portal.properties
 config/application.properties
-config/log4j.properties
 !*.sh
 .idea
 .env.*

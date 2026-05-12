@@ -13,8 +13,7 @@ echo "Derived tables initialized."
 echo "Clickhouse database has been successfully initialized with reference data."
 echo "Please import your studies using 'docker compose exec cbioportal metaImport.py ...' first before attempting to view the website."
 
-## HACK: inject log4j.properties into the importer JAR so it overrides the bundled one
+## HACK: inject application.properties into the importer JAR so it overrides the bundled one
 cd /tmp && cp /cbioportal-webapp/application.properties . && jar uf /core/core-IMPORTER.jar application.properties
-cd /tmp && cp /cbioportal-webapp/log4j.properties . && jar uf /core/core-IMPORTER.jar log4j.properties
 
 exec "$@"

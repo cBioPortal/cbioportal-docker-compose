@@ -15,7 +15,6 @@ services:
       - ./entrypoint.sh:/cbioportal/entrypoint.sh
 
       - ${APPLICATION_PROPERTIES_PATH:-./config/application.properties}:/cbioportal-webapp/application.properties:ro
-      - ./config/log4j.properties:/cbioportal-webapp/log4j.properties:ro
       # We need to mount the derived table script into the cbioportal container
       # The metaImport script looks for it under $PORTAL_HOME
       - ./data/clickhouse.sql:/cbioportal/clickhouse.sql:ro
