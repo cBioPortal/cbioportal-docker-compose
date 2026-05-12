@@ -7,7 +7,7 @@ CH_CLIENT="clickhouse-client --host ${CLICKHOUSE_HOST} --port ${CLICKHOUSE_NATIV
 
 # Run derived table script (necessary even though the db is empty for the website to work properly)
 echo "Running derived table script..."
-python3 metaImport.py derive-tables
+metaImport.py derive-tables
 echo "Derived tables initialized."
 
 echo "Clickhouse database has been successfully initialized with reference data."
