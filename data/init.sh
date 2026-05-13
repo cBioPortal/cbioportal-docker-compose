@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
+set -eo pipefail
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-# Download the ClickHouse base schema (table definitions)
-wget -q -O schema.sql "https://raw.githubusercontent.com/cBioPortal/cbioportal/refs/heads/add-clickhoue-database-schema-and-seed/src/main/resources/db-scripts/clickhouse/init/schema.sql"
+VERSION=$(grep DOCKER_IMAGE_CBIOPORTAL "${SCRIPT_DIR}/../.env" | tail -n 1 | cut -d '=' -f 2-)
 
-# Download the ClickHouse-compatible seed database (genes, cancer types, etc.)
-wget -O seed.sql.gz "https://github.com/cBioPortal/cbioportal/raw/refs/heads/add-clickhoue-database-schema-and-seed/src/main/resources/db-scripts/clickhouse/init/seed-cbioportal_hg19_hg38_v2.14.5.sql.gz"
+CONTAINER=$(docker create $VERSION)
+trap 'docker rm $CONTAINER' EXIT
+
+docker cp $CONTAINER:/cbioportal/db-scripts/clickhouse/init/schema.sql "${SCRIPT_DIR}/schema.sql"
+docker cp $CONTAINER:/cbioportal/db-scripts/clickhouse/init/seed-cbioportal_hg19_hg38_v2.14.5.sql.gz "${SCRIPT_DIR}/seed.sql.gz"
+docker cp $CONTAINER:/cbioportal/db-scripts/clickhouse/clickhouse.sql "${SCRIPT_DIR}/clickhouse.sql"

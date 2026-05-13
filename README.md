@@ -1,79 +1,111 @@
 # Run cBioPortal using Docker Compose
-Download necessary files (seed data, example config and example study from
-datahub):
+
+## Prerequisites
+
+**Docker** must be installed and the daemon running before any step below will work. See [Get Docker](https://docs.docker.com/get-started/get-docker/) for platform-specific installation instructions.
+
+---
+
+## Quick Start
+
+### 1. Download config, schema, seed data, and studies
+
 ```
 ./init.sh
 ```
 
-Start docker containers. This can take a few minutes the first time because the
-database needs to import some data.
+This runs three sub-scripts:
+- `config/init.sh` — extracts `application.properties` from the cBioPortal image and patches in your database credentials
+- `data/init.sh` — downloads the ClickHouse base schema and seed SQL files from the cBioPortal image
+- `study/init.sh` — downloads example studies from the cBioPortal datahub
+
+### 2. Start all containers
+
 ```
 docker compose up
 ```
-The cbioportal application should now be running at [localhost:8080](localhost:8080), with the one of the studies already loaded in it.
 
-If you are developing and want to expose the MySQL database for inspection through a program like Sequel Pro, run:
-```
-docker compose -f docker-compose.yml -f dev/open-ports.yml up
-```
+This starts cBioPortal at [localhost:8080](http://localhost:8080). On first run, ClickHouse applies the schema and seed data automatically before the web app becomes available.
 
-In a different terminal import a study
-```
-docker-compose exec cbioportal metaImport.py -u http://cbioportal:8080 -s study/lgg_ucsf_2014/ -o
-```
-The example study in the `study/` directory is based on hg19. When importing hg38 data, be sure to set `reference_genome: hg38` in the [meta_study.txt](https://docs.cbioportal.org/5.1-data-loading/data-loading/file-formats#meta-file-4).
+### 3. Import studies
 
-Restart the cbioportal container after importing
+The portal starts with only reference seed data. Import the studies downloaded in step 1 under the `study/` directory:
+
 ```
-docker-compose restart cbioportal
+docker compose exec cbioportal metaImport.py -s /study/lgg_ucsf_2014/ -n -o
+docker compose exec cbioportal metaImport.py -s /study/msk_impact_2017/ -n -o
+docker compose restart cbioportal
 ```
 
-The compose file uses docker volumes which persist data between reboots. To completely remove all data run:
+---
+
+## Configuration
+
+All configuration lives in `.env`. Edit that file to change database credentials, the cBioPortal image version, heap sizes, or which studies to download.
+
+The compose file uses Docker volumes to persist data between restarts. To wipe everything and start fresh:
 
 ```
 docker compose down -v
 ```
 
-If you were able to successfully set up a local installation of cBioPortal, please add it here: https://www.cbioportal.org/installations. Thank you!
+---
 
 ## Example Commands
-### Connect to the database
+
+### Connect to the ClickHouse database
+
 ```
+# Export ClickHouse vars first -- eg. 'source .env'
 docker compose exec cbioportal-database \
-    sh -c 'mysql -hcbioportal-database -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"'
+    sh -c 'clickhouse-client --user "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" --database "$CLICKHOUSE_DB"'
 ```
 
-## Advanced topics
-### Run different cBioPortal version
-
-This cBioPortal Docker Compose setup runs the latest release of cBioPortal. If you want to run more recent pre-releases, follow the steps below:
-
-1. Modify `DOCKER_IMAGE_CBIOPORTAL` environmental variable to point to a valid [cBioPortal Docker Image](https://hub.docker.com/repository/docker/cbioportal/cbioportal/tags).
-   ```
-   export DOCKER_IMAGE_CBIOPORTAL=cbioportal/cbioportal:6.2.0
-   ```
-2. Restart cbioportal
-   ```shell
-   docker compose restart cbioportal
-   ```
-
-### Run the 'web-shenandoah' cBioPortal image
-A web-only version of cBioPortal (suffixed -web-shenandoah) can be run using docker compose by declaring the `DOCKER_IMAGE_CBIOPORTAL`
-environmental variable to point to the corresponding image:
+### Import an additional study manually
 
 ```
-export DOCKER_IMAGE_CBIOPORTAL=cbioportal/cbioportal:6.0.20-web-shenandoah
-docker compose -f docker-compose.yml -f dev/docker-compose.web.yml up
+docker compose exec cbioportal \
+    metaImport.py -s /study/your_study/ -n -o
 ```
 
-which will start the v6.0.20-web-shenandoah version rather than the newest default version.
+Restart cBioPortal after importing so it picks up the new study:
 
-### Keycloak Authentication
-To set up a keycloak server with your cBioPortal instance for development purposes, check out the [documentation](./dev/README.md).
+```
+docker compose restart cbioportal
+```
+
+---
+
+## Advanced Topics
+
+### Run a different cBioPortal version
+
+Edit `DOCKER_IMAGE_CBIOPORTAL` in `.env`:
+
+```
+DOCKER_IMAGE_CBIOPORTAL=cbioportal/cbioportal:<desired_version>
+```
+
+Then re-run `config/init.sh` to regenerate `application.properties` for the new image, and restart:
+
+```
+docker compose restart cbioportal
+```
+
+### Download different studies
+
+In your terminal session, export `DATAHUB_STUDIES` as a list of (space-separated study IDs from the [cBioPortal datahub](https://github.com/cBioPortal/datahub)). Then re-run `study/init.sh` to download them, and restart compose so the importer picks them up.
+
+```
+export DATAHUB_STUDIES="lgg_ucsf_2014 msk_impact_2017"
+cd study/ && ./init.sh
+# Import the studies using metaImport.py as described above
+```
 
 ### Change the heap size
-#### Web app
-You can change the heap size in the command section of the cbioportal container
 
-#### Importer
-For the importer you can't directly edit the java command used to import a study. Instead add `JAVA_TOOL_OPTIONS` as an environment variable to the cbioportal container and set the desired JVM parameters there (e.g. `JAVA_TOOL_OPTIONS: "-Xms4g -Xmx8g"`).
+Edit the `java -Xms2g -Xmx4g` flags in the `command:` section of the `cbioportal` service in `docker-compose.yml`.
+
+### Keycloak Authentication
+
+To set up a Keycloak server with your cBioPortal instance for development, see the [dev documentation](./dev/README.md).

@@ -1,38 +1,38 @@
-version: '3'
-
 services:
   cbioportal:
     restart: unless-stopped
     image: ${DOCKER_IMAGE_CBIOPORTAL}
     container_name: cbioportal-container
+    env_file:
+      - .env
     environment:
-      SHOW_DEBUG_INFO: "true"
-      PORTAL_HOME: "/cbioportal-webapp"
-      APP_CLICKHOUSE_MODE: "true"
-      APP_SPRING_PROFILE: "clickhouse"
+      SERVER_PORT: ${CBIOPORTAL_SERVER_PORT}
     ports:
       - "8080:8080"
+    entrypoint: [ "/cbioportal/entrypoint.sh" ]
     volumes:
-     - ./study:/study/
-     - ${APPLICATION_PROPERTIES_PATH:-./config/application.properties}:/cbioportal-webapp/application.properties:ro
+      - ./study:/study/
+      - ./entrypoint.sh:/cbioportal/entrypoint.sh
+
+      - ${APPLICATION_PROPERTIES_PATH:-./config/application.properties}:/cbioportal-webapp/application.properties:ro
+      # We need to mount the derived table script into the cbioportal container
+      # The metaImport script looks for it under $PORTAL_HOME
+      - ./data/clickhouse.sql:/cbioportal/clickhouse.sql:ro
     depends_on:
-      cbioportal-clickhouse-database:
+      cbioportal-database:
         condition: service_healthy
       cbioportal-session:
         condition: service_started
     networks:
      - cbio-net
-    command: /bin/sh -c "java -Xms2g -Xmx4g -cp '/cbioportal-webapp:/cbioportal-webapp/lib/*' org.cbioportal.PortalApplication --spring.config.location=cbioportal-webapp/application.properties --authenticate=false --session.service.url=http://cbioportal-session:5001/api/sessions/my_portal/ --clickhouse_mode=true --spring.profiles.active=clickhouse"
+    command: /bin/sh -c "java -Xms2g -Xmx4g -cp '/cbioportal-webapp:/cbioportal-webapp/lib/*' org.cbioportal.PortalApplication --spring.config.location=file:/cbioportal-webapp/application.properties --authenticate=false --session.service.url=http://cbioportal-session:5001/api/sessions/my_portal/ --clickhouse_mode=true --spring.profiles.active=clickhouse"
 
-  cbioportal-clickhouse-database:
+  cbioportal-database:
     restart: unless-stopped
     image: ${DOCKER_IMAGE_CLICKHOUSE}
-    container_name: cbioportal-database-clickhouse-container
-    environment:
-      CLICKHOUSE_DB: ${DB_CLICKHOUSE_DB_NAME}
-      CLICKHOUSE_USER: ${DB_CLICKHOUSE_USERNAME}
-      CLICKHOUSE_PASSWORD: ${DB_CLICKHOUSE_PASSWORD}
-      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    container_name: cbioportal-database-container
+    env_file:
+      - .env
     ports:
       - "8123:8123"
       - "9000:9000"
@@ -55,9 +55,11 @@ services:
     restart: unless-stopped
     image: ${DOCKER_IMAGE_SESSION_SERVICE}
     container_name: cbioportal-session-container
+    env_file:
+      - .env
     environment:
-      SERVER_PORT: 5001
-      JAVA_OPTS: -Dspring.data.mongodb.uri=mongodb://cbioportal-session-database:27017/session-service
+      SERVER_PORT: ${SESSION_SERVICE_SERVER_PORT}
+      JAVA_OPTS: ${SESSION_SERVICE_JAVA_OPTS}
     depends_on:
       - cbioportal-session-database
     networks:
@@ -67,8 +69,8 @@ services:
     restart: unless-stopped
     image: mongo:4.2
     container_name: cbioportal-session-database-container
-    environment:
-      MONGO_INITDB_DATABASE: session_service
+    env_file:
+      - .env
     volumes:
       - cbioportal_mongo_data:/data/db
     networks:
@@ -80,3 +82,4 @@ networks:
 volumes:
   cbioportal_clickhouse_data:
   cbioportal_mongo_data:
+  sql-files:
