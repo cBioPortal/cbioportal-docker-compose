@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
+set -eo pipefail
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 VERSION=$(grep DOCKER_IMAGE_CBIOPORTAL ../.env | tail -n 1 | cut -d '=' -f 2-)
 
-# Get the schema
-docker run --rm -i $VERSION cat /cbioportal/db-scripts/cgds.sql > cgds.sql
+CONTAINER=$(docker create $VERSION)
+trap 'docker rm $CONTAINER' EXIT
 
-# Download the combined hg19 + hg38 seed database
-wget -O seed.sql.gz "https://github.com/cBioPortal/datahub/raw/refs/heads/master/seedDB/seed-cbioportal_hg19_hg38_v2.14.5.sql.gz"
+docker cp $CONTAINER:/cbioportal/db-scripts/clickhouse/init/schema.sql "${SCRIPT_DIR}/schema.sql"
+docker cp $CONTAINER:/cbioportal/db-scripts/clickhouse/init/seed-cbioportal_hg19_hg38_v2.14.5.sql.gz "${SCRIPT_DIR}/seed.sql.gz"
+docker cp $CONTAINER:/cbioportal/db-scripts/clickhouse/clickhouse.sql "${SCRIPT_DIR}/clickhouse.sql"
