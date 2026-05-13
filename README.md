@@ -63,6 +63,8 @@ docker compose exec cbioportal-database \
 
 ### Import an additional study manually
 
+First, move your study into the `study/` directory under the repo root. This enables the importer to access it because it is mounted as a volume into the `cbioportal` container. Then run:
+
 ```
 docker compose exec cbioportal \
     metaImport.py -s /study/your_study/ -n -o
