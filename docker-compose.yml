@@ -41,6 +41,8 @@ services:
       - ./data/load_schema.sh:/docker-entrypoint-initdb.d/001_load_schema.sh:ro
       - ./data/seed.sql.gz:/data/seed.sql.gz:ro
       - ./data/load_seed.sh:/docker-entrypoint-initdb.d/002_load_seed.sh:ro
+      - ./data/clickhouse.sql:/data/clickhouse.sql:ro
+      - ./data/load_derived_tables.sh:/docker-entrypoint-initdb.d/003_load_derived_tables.sh:ro
       - cbioportal_clickhouse_data:/var/lib/clickhouse
     networks:
       - cbio-net

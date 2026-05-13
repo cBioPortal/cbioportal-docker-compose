@@ -3,9 +3,11 @@
 # It loads the base schema from the SQL file.
 set -eo pipefail
 
+echo "Loading schema..."
 clickhouse-client \
     --user "${CLICKHOUSE_USER}" \
     --password "${CLICKHOUSE_PASSWORD}" \
     --database "${CLICKHOUSE_DB}" \
     --multiquery \
     < /data/schema.sql
+echo "Successfully loaded schema."
