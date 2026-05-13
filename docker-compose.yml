@@ -37,9 +37,12 @@ services:
       - "8123:8123"
       - "9000:9000"
     volumes:
-      # Scripts in /docker-entrypoint-initdb.d are automatically run in alphabetical order
-      - ./data/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
-      - ./data/seed.sql.gz:/docker-entrypoint-initdb.d/02_seed.sql.gz:ro
+      # Scripts in /docker-entrypoint-initdb.d are automatically run in alphabetical order.
+      # The shell script explicitly passes --database=cbioportal so tables land in the
+      # right database instead of the ClickHouse default "default" database.
+      - ./data/schema.sql:/init-sql/schema.sql:ro
+      - ./data/seed.sql.gz:/init-sql/seed.sql.gz:ro
+      - ./data/init_db.sh:/docker-entrypoint-initdb.d/01_init_db.sh
       - ${CLICKHOUSE_SETTINGS_PATH:-./data/clickhouse_user_settings.xml}:/etc/clickhouse-server/users.d/user_settings.xml:ro
       - cbioportal_clickhouse_data:/var/lib/clickhouse
     healthcheck:
