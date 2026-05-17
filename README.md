@@ -68,6 +68,18 @@ docker compose -f docker-compose.yml -f dev/docker-compose.web.yml up
 
 which will start the v6.0.20-web-shenandoah version rather than the newest default version.
 
+### Clickhouse Mode (for large cohorts)
+
+<a href="https://clickhouse.com/cloud"><img src="images/clickhouse-logo.svg" alt="ClickHouse" height="40" /></a>
+
+For cBioPortal instances with large cohorts (>100K samples), you can run cBioPortal in [Clickhouse mode](https://docs.cbioportal.org/deployment/docker/#clickhouse-mode), which uses Clickhouse as an additional database next to MySQL for ~10x faster Study View queries.
+
+```
+docker compose -f docker-compose.yml -f addon/clickhouse/docker-compose.clickhouse.yml up
+```
+
+For production deployments we recommend using [Clickhouse Cloud](https://clickhouse.com/cloud) as a managed service — it removes the operational overhead of running and scaling Clickhouse yourself. Update the clickhouse database credentials in [.env](.env) to match your Clickhouse Cloud database credentials; the credentials should have both `read` and `write` permissions for the sync step. See the [Clickhouse Cloud section of the deployment docs](https://docs.cbioportal.org/deployment/docker/#clickhouse-cloud) for the full setup.
+
 ### Keycloak Authentication
 To set up a keycloak server with your cBioPortal instance for development purposes, check out the [documentation](./dev/README.md).
 
