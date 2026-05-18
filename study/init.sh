@@ -28,3 +28,9 @@ PANEL_BASE="https://media.githubusercontent.com/media/cBioPortal/datahub/refs/he
 for panel in data_gene_panel_impact341.txt data_gene_panel_impact410.txt; do
     curl -fL -o "${SCRIPT_DIR}/reference_data/${panel}" "${PANEL_BASE}/${panel}"
 done
+
+# Download genesets for study_es_0
+GENESET_BASE="https://raw.githubusercontent.com/cBioPortal/cbioportal-core/refs/heads/main/src/test/resources/genesets"
+for f in study_es_0_genesets.gmt study_es_0_tree.yaml study_es_0_supp-genesets.txt; do
+    curl -fL -o "${SCRIPT_DIR}/reference_data/${f}" "${GENESET_BASE}/${f}"
+done
