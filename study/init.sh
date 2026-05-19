@@ -8,7 +8,6 @@ VERSION=$(grep DOCKER_IMAGE_CBIOPORTAL "${SCRIPT_DIR}/../.env" | tail -n 1 | cut
 CONTAINER=$(docker create "$VERSION")
 trap 'docker rm $CONTAINER' EXIT
 docker cp "$CONTAINER:/cbioportal/test/study_es_0" "${SCRIPT_DIR}/study_es_0"
-rm -f "${SCRIPT_DIR}"/study_es_0/*_gsva_*
 
 # Download datahub studies
 DATAHUB_STUDIES="${DATAHUB_STUDIES:-lgg_ucsf_2014 msk_impact_2017}"
