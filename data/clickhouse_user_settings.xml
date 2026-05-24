@@ -1,0 +1,14 @@
+<clickhouse>
+    <profiles>
+        <client_user_profile>
+            <max_query_size>1000000000</max_query_size>
+            <max_ast_elements>6000000</max_ast_elements>
+            <max_expanded_ast_elements>6000000</max_expanded_ast_elements>
+        </client_user_profile>
+    </profiles>
+    <users>
+        <cbio_user>
+            <profile>client_user_profile</profile>
+        </cbio_user>
+    </users>
+</clickhouse>
