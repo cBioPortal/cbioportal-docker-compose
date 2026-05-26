@@ -1,0 +1,34 @@
+# Point cBioPortal at an EXTERNAL / remote ClickHouse instead of the bundled local one.
+#
+# Usage (as a compose extension, applied last so it wins the merge):
+#   docker compose -f docker-compose.yml \
+#                  -f dev/docker-compose.web.yml \
+#                  -f addon/clickhouse/docker-compose.remote.clickhouse.yml up
+#
+# Connection settings are read from the shell environment (e.g. a CI context such as
+# `clickhouse-public-staging-ro-user`) and override the local defaults baked into .env.
+# Required env vars: CLICKHOUSE_URL, CLICKHOUSE_USER, CLICKHOUSE_PASSWORD.
+#
+# This restores the pre-v7 `docker-compose.remote.clickhouse.yml` (deleted in the
+# "import to ClickHouse" refactor), adapted to the v7 base compose where ClickHouse
+# is the local default DB.
+services:
+  cbioportal:
+    # `environment` takes precedence over `env_file` (.env), so these point the running
+    # container at the remote ClickHouse instead of jdbc:ch://cbioportal-database:8123.
+    environment:
+      CLICKHOUSE_URL: ${CLICKHOUSE_URL}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+    # Don't wait on (or require) the local DB healthcheck — we're talking to a remote DB.
+    # `!override` replaces the base mapping rather than merging into it.
+    depends_on: !override
+      cbioportal-session:
+        condition: service_started
+    # The base entrypoint injects application.properties into the importer JAR, which is
+    # only present in the web-and-data image. Bypass it; `command` runs the web app.jar.
+    entrypoint: []
+  # Do not start the bundled local ClickHouse at all.
+  cbioportal-database:
+    deploy:
+      replicas: 0
