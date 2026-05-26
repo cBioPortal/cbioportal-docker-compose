@@ -17,9 +17,9 @@ services:
     # `environment` takes precedence over `env_file` (.env), so these point the running
     # container at the remote ClickHouse instead of jdbc:ch://cbioportal-database:8123.
     environment:
-      CLICKHOUSE_URL: ${CLICKHOUSE_URL}
-      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
-      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_URL: ${CLICKHOUSE_URL:?CLICKHOUSE_URL is required}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:?CLICKHOUSE_USER is required}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?CLICKHOUSE_PASSWORD is required}
     # Don't wait on (or require) the local DB healthcheck — we're talking to a remote DB.
     # `!override` replaces the base mapping rather than merging into it.
     depends_on: !override
