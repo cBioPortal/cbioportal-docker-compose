@@ -17,10 +17,12 @@ services:
       - ${APPLICATION_PROPERTIES_PATH:-./config/application.properties}:/cbioportal-webapp/application.properties:ro
       # We need to mount the derived table script into the cbioportal container
       # The metaImport script looks for it under $PORTAL_HOME
-      - ./data/clickhouse.sql:/cbioportal/clickhouse.sql:ro
+      - ./data/generate_derived_tables.sql:/cbioportal/generate_derived_tables.sql:ro
     depends_on:
       cbioportal-database:
         condition: service_healthy
+      cbioportal-migration:
+        condition: service_completed_successfully
       cbioportal-session:
         condition: service_started
     networks:
@@ -41,7 +43,7 @@ services:
       - ./data/load_schema.sh:/docker-entrypoint-initdb.d/001_load_schema.sh:ro
       - ./data/seed.sql.gz:/data/seed.sql.gz:ro
       - ./data/load_seed.sh:/docker-entrypoint-initdb.d/002_load_seed.sh:ro
-      - ./data/clickhouse.sql:/data/clickhouse.sql:ro
+      - ./data/generate_derived_tables.sql:/data/generate_derived_tables.sql:ro
       - ./data/load_derived_tables.sh:/docker-entrypoint-initdb.d/003_load_derived_tables.sh:ro
       - cbioportal_clickhouse_data:/var/lib/clickhouse
     networks:
@@ -52,6 +54,24 @@ services:
       timeout: 3s
       retries: 300
       start_period: 5m
+
+  # Applies any pending base-table schema migrations (db-scripts/clickhouse/migrate/migrate_schema.sql,
+  # via migrate_db.py) before the cbioportal app starts. On a fresh install this is a no-op, since
+  # schema.sql already seeds `info` at the current db_schema_version. Runs from the cbioportal image
+  # itself (not a host-mounted script) since that image already bundles python3, a clickhouse client,
+  # and db-scripts/clickhouse/migrate/.
+  cbioportal-migration:
+    image: ${DOCKER_IMAGE_CBIOPORTAL}
+    container_name: cbioportal-migration-container
+    env_file:
+      - .env
+    depends_on:
+      cbioportal-database:
+        condition: service_healthy
+    networks:
+      - cbio-net
+    entrypoint: ["python3", "/cbioportal/db-scripts/clickhouse/migrate/migrate_db.py"]
+    restart: "no"
 
   cbioportal-session:
     restart: unless-stopped
