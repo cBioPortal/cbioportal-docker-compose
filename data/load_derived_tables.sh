@@ -8,5 +8,5 @@ clickhouse-client \
     --database "${CLICKHOUSE_DB}" \
     --multiquery \
     --param_optimize_backoff_secs="${CLICKHOUSE_OPTIMIZE_BACKOFF_SECS:-0}" \
-    < /data/clickhouse.sql
+    < /data/generate_derived_tables.sql
 echo "Successfully created derived tables."
