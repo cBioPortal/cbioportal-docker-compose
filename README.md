@@ -15,8 +15,9 @@ docker compose -f docker-compose.yml \
 
 The rehearsal origin is `http://<host>:3001`. Set `WSI_RUNTIME_MODE=proxied`
 when starting the frontend so its WSI URLs use that origin. nginx routes
-`/patient/P-*` and `/tiles/*` to the tile server and sends all other paths to
-the frontend. Access logs are available in the `wsi-nginx-logs` volume.
+`/wsi/*` to the tile server and sends all other paths to the frontend. The
+tile server exposes its existing API under this namespace. Access logs are
+available in the `wsi-nginx-logs` volume.
 
 This rehearsal listens on HTTP. For HTTPS, put the nginx container behind a
 TLS-terminating development load balancer or add a separately managed
