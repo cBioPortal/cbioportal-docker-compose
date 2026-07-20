@@ -1,0 +1,22 @@
+# Browser-visible nginx origin for the shared WSI rehearsal.
+#
+# Usage:
+#   docker compose -f docker-compose.yml \
+#     -f addon/slide-viewer/docker-compose.slide-viewer.yml \
+#     -f addon/wsi-nginx/docker-compose.wsi-nginx.yml up -d wsi-nginx
+
+services:
+  wsi-nginx:
+    image: nginx:1.27-alpine
+    container_name: cbioportal-wsi-nginx
+    restart: unless-stopped
+    ports:
+      - "${WSI_NGINX_PORT:-3001}:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./addon/wsi-nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - wsi-nginx-logs:/var/log/nginx
+
+volumes:
+  wsi-nginx-logs:
