@@ -8,13 +8,14 @@ services:
     environment:
       SERVER_PORT: ${CBIOPORTAL_SERVER_PORT}
     ports:
-      - "8080:8080"
+      - "${CBIOPORTAL_SERVER_PORT:-8080}:${CBIOPORTAL_SERVER_PORT:-8080}"
     entrypoint: [ "/cbioportal/entrypoint.sh" ]
     volumes:
       - ./study:/study/
       - ./entrypoint.sh:/cbioportal/entrypoint.sh
 
       - ${APPLICATION_PROPERTIES_PATH:-./config/application.properties}:/cbioportal-webapp/application.properties:ro
+      - ./config/wsi_config.json:/wsi-config.json:ro
       # We need to mount the derived table script into the cbioportal container
       # The metaImport script looks for it under $PORTAL_HOME
       - ./data/clickhouse.sql:/cbioportal/clickhouse.sql:ro
@@ -33,9 +34,7 @@ services:
     container_name: cbioportal-database-container
     env_file:
       - .env
-    ports:
-      - "8123:8123"
-      - "9000:9000"
+    # ClickHouse ports not bound to host; only used internally via cbio-net
     volumes:
       - ./data/schema.sql:/data/schema.sql:ro
       - ./data/load_schema.sh:/docker-entrypoint-initdb.d/001_load_schema.sh:ro

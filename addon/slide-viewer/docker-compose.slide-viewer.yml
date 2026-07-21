@@ -1,0 +1,71 @@
+# Add the WSI slide-viewer tile server to the cBioPortal compose stack.
+#
+# Usage:
+#   docker compose -f docker-compose.yml \
+#                  -f addon/slide-viewer/docker-compose.slide-viewer.yml up
+#
+# Required env vars (add to .env or export in shell):
+#   REEF_ECS_ENDPOINT   — Dell ECS endpoint, e.g. http://pmindecs.mskcc.org:9020
+#   REEF_AWS_KEY        — ECS access key
+#   REEF_AWS_SECRET     — ECS secret key
+#   DATABRICKS_HOST     — e.g. https://msk-mode-prod.cloud.databricks.com
+#   DATABRICKS_TOKEN    — Databricks PAT
+#
+# Optional env vars (defaults shown):
+#   REEF_S3_BUCKET=mskmind-bkt
+#   REEF_S3_PREFIX=reef-slides
+#   DATABRICKS_WAREHOUSE_ID=0b49b7d78734ad5c
+#   PATIENT_CACHE_TTL=86400
+#   SLIDE_VIEWER_PORT=8081        (host port; set to empty to disable port binding)
+#   SLIDE_VIEWER_IMAGE=<immutable image tag or digest>
+
+services:
+  slide-viewer:
+    image: ${SLIDE_VIEWER_IMAGE:?SLIDE_VIEWER_IMAGE must be an immutable image tag or digest}
+    restart: unless-stopped
+    environment:
+      REEF_ECS_ENDPOINT:         ${REEF_ECS_ENDPOINT:?REEF_ECS_ENDPOINT is required}
+      REEF_AWS_KEY:              ${REEF_AWS_KEY:?REEF_AWS_KEY is required}
+      REEF_AWS_SECRET:           ${REEF_AWS_SECRET:?REEF_AWS_SECRET is required}
+      REEF_S3_BUCKET:            ${REEF_S3_BUCKET:-mskmind-bkt}
+      REEF_S3_PREFIX:            ${REEF_S3_PREFIX:-reef-slides}
+      DATABRICKS_HOST:           ${DATABRICKS_HOST:?DATABRICKS_HOST is required}
+      DATABRICKS_TOKEN:          ${DATABRICKS_TOKEN:?DATABRICKS_TOKEN is required}
+      DATABRICKS_WAREHOUSE_ID:   ${DATABRICKS_WAREHOUSE_ID:-0b49b7d78734ad5c}
+      PATIENT_CACHE_TTL:         ${PATIENT_CACHE_TTL:-86400}
+      REDIS_URL:                 redis://slide-viewer-redis:6379
+      WSI_AUTH_SECRET:           ${WSI_AUTH_SECRET:-}
+      WSI_AUTH_REQUIRED:         ${WSI_AUTH_REQUIRED:-false}
+    ports:
+      - "${SLIDE_VIEWER_PORT:-8081}:8080"
+    depends_on:
+      slide-viewer-redis:
+        condition: service_healthy
+    networks:
+      - cbio-net
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  slide-viewer-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: >
+      redis-server
+      --maxmemory ${SLIDE_VIEWER_REDIS_MAXMEMORY:-4gb}
+      --maxmemory-policy allkeys-lru
+      --save "" --appendonly no
+    networks:
+      - cbio-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+networks:
+  cbio-net:
+    external: true
