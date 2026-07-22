@@ -60,8 +60,8 @@ services:
   # schema.sql already seeds `info` at the current db_schema_version. Runs from the cbioportal image
   # itself (not a host-mounted script) since that image already bundles python3, a clickhouse client,
   # and db-scripts/clickhouse/migrate/. --regenerate-derived-tables also regenerates derived tables
-  # whenever generate_derived_tables.sql's version differs from the database's current
-  # derived_table_schema_version, so docker-compose users get this for free with no manual step.
+  # automatically whenever generate_derived_tables.sql's version differs from the database's
+  # current derived_table_schema_version, so docker-compose users don't need a manual step.
   cbioportal-migration:
     image: ${DOCKER_IMAGE_CBIOPORTAL}
     container_name: cbioportal-migration-container
