@@ -11,7 +11,7 @@ rm -rf "${SCRIPT_DIR}/study_es_0"
 cp -r "$CBIO_REPO/test/test_data/study_es_0" "${SCRIPT_DIR}/study_es_0"
 
 # Download datahub studies
-DATAHUB_STUDIES="${DATAHUB_STUDIES:-lgg_ucsf_2014 msk_impact_2017}"
+DATAHUB_STUDIES="${DATAHUB_STUDIES:-lgg_ucsf_2014 msk_impact_2017 msk_spectrum_tme_2022}"
 for study in ${DATAHUB_STUDIES}; do
     curl -fL -o "${study}.tar.gz" "https://datahub.assets.cbioportal.org/${study}.tar.gz"
     tar xfz "${study}.tar.gz"

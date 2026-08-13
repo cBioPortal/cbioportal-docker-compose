@@ -8,18 +8,29 @@
 #   REEF_ECS_ENDPOINT   — Dell ECS endpoint, e.g. http://pmindecs.mskcc.org:9020
 #   REEF_AWS_KEY        — ECS access key
 #   REEF_AWS_SECRET     — ECS secret key
-#   DATABRICKS_HOST     — e.g. https://msk-mode-prod.cloud.databricks.com
-#   DATABRICKS_TOKEN    — Databricks PAT
+#   WSI_AUTH_SECRET     — same capability secret as cBioPortal
 #
 # Optional env vars (defaults shown):
 #   REEF_S3_BUCKET=mskmind-bkt
 #   REEF_S3_PREFIX=reef-slides
-#   DATABRICKS_WAREHOUSE_ID=0b49b7d78734ad5c
-#   PATIENT_CACHE_TTL=86400
+#   WSI_AUTH_AUDIENCE=cbioportal-wsi
+#   WSI_AUTH_MAX_TTL=300
+#   WSI_LOCAL_AUTH_BYPASS=true (set false when portal authentication is enabled)
+#   WSI_ALLOWED_SOURCE_SCHEMES=s3
 #   SLIDE_VIEWER_PORT=8081        (host port; set to empty to disable port binding)
 #   SLIDE_VIEWER_IMAGE=<immutable image tag or digest>
 
 services:
+  cbioportal:
+    # The base compose stack runs the portal with --authenticate=false. Wire
+    # its access-token issuer to the same capability contract as the tile
+    # server so /api/wsi/v2/.../access can issue browser capabilities.
+    environment:
+      WSI_ACCESS_TOKEN_SECRET: ${WSI_AUTH_SECRET:?WSI_AUTH_SECRET is required}
+      WSI_ACCESS_TOKEN_AUDIENCE: ${WSI_AUTH_AUDIENCE:-cbioportal-wsi}
+      WSI_ACCESS_TOKEN_TTL_SECONDS: ${WSI_AUTH_MAX_TTL:-300}
+      WSI_LOCAL_AUTH_BYPASS: ${WSI_LOCAL_AUTH_BYPASS:-true}
+
   slide-viewer:
     image: ${SLIDE_VIEWER_IMAGE:?SLIDE_VIEWER_IMAGE must be an immutable image tag or digest}
     restart: unless-stopped
@@ -27,15 +38,16 @@ services:
       REEF_ECS_ENDPOINT:         ${REEF_ECS_ENDPOINT:?REEF_ECS_ENDPOINT is required}
       REEF_AWS_KEY:              ${REEF_AWS_KEY:?REEF_AWS_KEY is required}
       REEF_AWS_SECRET:           ${REEF_AWS_SECRET:?REEF_AWS_SECRET is required}
+      AWS_ENDPOINT_URL:          ${REEF_ECS_ENDPOINT}
+      AWS_ACCESS_KEY_ID:         ${REEF_AWS_KEY}
+      AWS_SECRET_ACCESS_KEY:     ${REEF_AWS_SECRET}
       REEF_S3_BUCKET:            ${REEF_S3_BUCKET:-mskmind-bkt}
       REEF_S3_PREFIX:            ${REEF_S3_PREFIX:-reef-slides}
-      DATABRICKS_HOST:           ${DATABRICKS_HOST:?DATABRICKS_HOST is required}
-      DATABRICKS_TOKEN:          ${DATABRICKS_TOKEN:?DATABRICKS_TOKEN is required}
-      DATABRICKS_WAREHOUSE_ID:   ${DATABRICKS_WAREHOUSE_ID:-0b49b7d78734ad5c}
-      PATIENT_CACHE_TTL:         ${PATIENT_CACHE_TTL:-86400}
       REDIS_URL:                 redis://slide-viewer-redis:6379
-      WSI_AUTH_SECRET:           ${WSI_AUTH_SECRET:-}
-      WSI_AUTH_REQUIRED:         ${WSI_AUTH_REQUIRED:-false}
+      WSI_AUTH_SECRET:           ${WSI_AUTH_SECRET:?WSI_AUTH_SECRET is required}
+      WSI_AUTH_AUDIENCE:         ${WSI_AUTH_AUDIENCE:-cbioportal-wsi}
+      WSI_AUTH_MAX_TTL:          ${WSI_AUTH_MAX_TTL:-300}
+      WSI_ALLOWED_SOURCE_SCHEMES: ${WSI_ALLOWED_SOURCE_SCHEMES:-s3}
     ports:
       - "${SLIDE_VIEWER_PORT:-8081}:8080"
     depends_on:
