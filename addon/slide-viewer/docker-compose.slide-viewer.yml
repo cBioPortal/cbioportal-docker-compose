@@ -17,7 +17,7 @@
 #   WSI_AUTH_MAX_TTL=300
 #   WSI_LOCAL_AUTH_BYPASS=true (set false when portal authentication is enabled)
 #   WSI_ALLOWED_SOURCE_SCHEMES=s3
-#   SLIDE_VIEWER_PORT=8081        (host port; set to empty to disable port binding)
+#   SLIDE_VIEWER_PORT=8081        (host port for direct tile-server access)
 #   SLIDE_VIEWER_IMAGE=<immutable image tag or digest>
 
 services:
@@ -80,4 +80,3 @@ services:
 
 networks:
   cbio-net:
-    external: true

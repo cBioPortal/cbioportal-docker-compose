@@ -14,9 +14,19 @@ services:
       - "${WSI_NGINX_PORT:-3001}:80"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      cbioportal:
+        condition: service_started
+      slide-viewer:
+        condition: service_healthy
+    networks:
+      - cbio-net
     volumes:
       - ./addon/wsi-nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - wsi-nginx-logs:/var/log/nginx
 
 volumes:
   wsi-nginx-logs:
+
+networks:
+  cbio-net:

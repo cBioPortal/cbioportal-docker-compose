@@ -15,7 +15,6 @@ services:
       - ./entrypoint.sh:/cbioportal/entrypoint.sh
 
       - ${APPLICATION_PROPERTIES_PATH:-./config/application.properties}:/cbioportal-webapp/application.properties:ro
-      - ./config/wsi_config.json:/wsi-config.json:ro
       # We need to mount the derived table script into the cbioportal container
       # The metaImport script looks for it under $PORTAL_HOME
       - ./data/clickhouse.sql:/cbioportal/clickhouse.sql:ro
@@ -26,7 +25,7 @@ services:
         condition: service_started
     networks:
      - cbio-net
-    command: /bin/sh -c "java -Xms2g -Xmx4g -cp '/cbioportal-webapp:/cbioportal-webapp/lib/*' org.cbioportal.PortalApplication --spring.config.location=file:/cbioportal-webapp/application.properties --authenticate=false --session.service.url=http://cbioportal-session:5001/api/sessions/my_portal/ --clickhouse_mode=true --spring.profiles.active=clickhouse"
+    command: /bin/sh -c "java -Xms2g -Xmx4g -cp '/cbioportal-webapp:/cbioportal-webapp/lib/*' org.cbioportal.PortalApplication --spring.config.location=file:/cbioportal-webapp/application.properties --authenticate=false --session.service.url=http://cbioportal-session:5001/api/sessions/my_portal/ --clickhouse_mode=true --spring.profiles.active=clickhouse --msk.wsi.tile_server.url=/wsi"
 
   cbioportal-database:
     restart: unless-stopped
