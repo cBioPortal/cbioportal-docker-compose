@@ -1,0 +1,33 @@
+# Explicit local-development override for the WSI slide viewer.
+#
+# This file intentionally enables anonymous WSI access. Do not include it in
+# a shared or production Compose invocation.
+
+services:
+  cbioportal:
+    # The cached WSI-enabled image has a JRE rather than the full JDK and
+    # therefore cannot run the base compose importer's `jar` bootstrap.
+    # Its image entrypoint still performs the normal CA setup and launches
+    # the Java command supplied by the base service.
+    entrypoint: ["/__cacert_entrypoint.sh"]
+    environment:
+      WSI_LOCAL_AUTH_BYPASS: "true"
+
+  slide-viewer:
+    environment:
+      # The dev frontend runs on the host and calls the nginx WSI origin.
+      # Keep this explicit; production deployments should provide their own
+      # allowlist through CORS_ORIGINS.
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000,http://pllimsksparky1:3000}
+      # The checked-in dev WSI fixture uses file:///app/testdata/*.jpg for
+      # thumbnails. Enable the file source scheme only for this local fixture.
+      WSI_ALLOWED_SOURCE_SCHEMES: ${WSI_ALLOWED_SOURCE_SCHEMES:-s3,file}
+    volumes:
+      - "${WSI_TESTDATA_DIR:-/gpfs/mskmind_ess/limr/repos/latest-stack/cbioportal-tile-server/tests/testdata}:/app/testdata:ro"
+    ports:
+      # The frontend's direct WSI mode derives the tile endpoint from the
+      # browser hostname (for example, pllimsksparky1:8081).  Binding only to
+      # loopback makes that endpoint unreachable from the browser even though
+      # the container is healthy.  Keep the address override for restricted
+      # environments, but make the development default browser-reachable.
+      - "${WSI_BIND_ADDRESS:-0.0.0.0}:${SLIDE_VIEWER_PORT:-8081}:8080"

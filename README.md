@@ -9,9 +9,34 @@ browser-visible nginx origin and the Compose-backed WSI services with:
 
 ```bash
 docker compose -f docker-compose.yml \
+  -f dev/keycloak/keycloak.yml \
   -f addon/slide-viewer/docker-compose.slide-viewer.yml \
+  -f addon/wsi-nginx/docker-compose.wsi-nginx.yml up -d keycloak wsi-nginx
+```
+
+The standard overlay is fail-closed: it requires the cBioPortal/Keycloak
+authentication setup and a Redis password. For an intentionally anonymous,
+local-only rehearsal, add the explicit development override:
+
+```bash
+docker compose -f docker-compose.yml \
+  -f addon/slide-viewer/docker-compose.slide-viewer.yml \
+  -f addon/slide-viewer/docker-compose.slide-viewer.dev.yml \
   -f addon/wsi-nginx/docker-compose.wsi-nginx.yml up -d wsi-nginx
 ```
+
+The development override binds the tile service to `0.0.0.0:8081` by default,
+because direct WSI mode derives the endpoint from the browser hostname. Set
+`WSI_BIND_ADDRESS=127.0.0.1` when the rehearsal is browser-local, or set an
+explicit host address when the browser is remote.
+Set `SLIDE_VIEWER_REDIS_PASSWORD` in the local environment for both modes.
+The dev override also mounts the tile-server checkout's read-only
+`tests/testdata` directory at `/app/testdata` and enables local `file://`
+sources only for those fixtures. Production and the standard overlay remain
+S3-only; use `WSI_TESTDATA_DIR` to point a local rehearsal at another fixture
+directory.
+Production images should be resolved to registry digests during release review;
+the tile-server image is supplied through `SLIDE_VIEWER_IMAGE`.
 
 The rehearsal origin is `http://<host>:3001`. Set `WSI_RUNTIME_MODE=proxied`
 when starting the frontend so its WSI URLs use that origin. nginx routes
@@ -36,11 +61,9 @@ Databricks refresh must wait for that job's completion watermark, and the
 standard cBioPortal core `metaImport.py` flow must then import the complete
 study-file snapshot.
 
-The frontend is read-only and does not upload thumbnails. The tile-server
-on-demand thumbnail worker is for development/rehearsal or controlled
-remediation only; it does not populate the registry and must not be treated as
-the production data source. The Compose overlay supplies the shared WSI
-capability secret to the portal and tile server, but it does not replace the
-upstream artifact batch.
+The frontend and online tile server are read-only and do not generate or
+upload thumbnails. The Compose overlay supplies the shared WSI capability
+secret to the portal and tile server, but it does not replace the upstream
+artifact batch.
 
 For documentation and usage instructions, see here: https://docs.cbioportal.org/deployment/docker/

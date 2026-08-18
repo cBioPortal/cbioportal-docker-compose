@@ -2,54 +2,59 @@
 #
 # Usage:
 #   docker compose -f docker-compose.yml \
+#                  -f dev/keycloak/keycloak.yml \
 #                  -f addon/slide-viewer/docker-compose.slide-viewer.yml up
 #
 # Required env vars (add to .env or export in shell):
-#   REEF_ECS_ENDPOINT   — Dell ECS endpoint, e.g. http://pmindecs.mskcc.org:9020
-#   REEF_AWS_KEY        — ECS access key
-#   REEF_AWS_SECRET     — ECS secret key
+#   AWS_ENDPOINT_URL    — Dell ECS endpoint, e.g. http://pmindecs.mskcc.org:9020
+#   AWS_ACCESS_KEY_ID   — ECS access key
+#   AWS_SECRET_ACCESS_KEY — ECS secret key
 #   WSI_AUTH_SECRET     — same capability secret as cBioPortal
 #
 # Optional env vars (defaults shown):
-#   REEF_S3_BUCKET=mskmind-bkt
-#   REEF_S3_PREFIX=reef-slides
 #   WSI_AUTH_AUDIENCE=cbioportal-wsi
 #   WSI_AUTH_MAX_TTL=300
-#   WSI_LOCAL_AUTH_BYPASS=true (set false when portal authentication is enabled)
+#   WSI_LOCAL_AUTH_BYPASS=false (set true only in the explicit dev override)
 #   WSI_ALLOWED_SOURCE_SCHEMES=s3
-#   SLIDE_VIEWER_PORT=8081        (host port for direct tile-server access)
+#   SLIDE_VIEWER_PORT=8081        (host port only when using the dev override)
 #   SLIDE_VIEWER_IMAGE=<immutable image tag or digest>
 
 services:
   cbioportal:
-    # The base compose stack runs the portal with --authenticate=false. Wire
-    # its access-token issuer to the same capability contract as the tile
-    # server so /api/wsi/v2/.../access can issue browser capabilities.
+    # Pair this overlay with the authenticated portal overlay (for example
+    # dev/keycloak/keycloak.yml). The base compose command is anonymous and
+    # must not be used with the fail-closed default below.
     environment:
       WSI_ACCESS_TOKEN_SECRET: ${WSI_AUTH_SECRET:?WSI_AUTH_SECRET is required}
       WSI_ACCESS_TOKEN_AUDIENCE: ${WSI_AUTH_AUDIENCE:-cbioportal-wsi}
       WSI_ACCESS_TOKEN_TTL_SECONDS: ${WSI_AUTH_MAX_TTL:-300}
-      WSI_LOCAL_AUTH_BYPASS: ${WSI_LOCAL_AUTH_BYPASS:-true}
+      WSI_LOCAL_AUTH_BYPASS: ${WSI_LOCAL_AUTH_BYPASS:-false}
 
   slide-viewer:
     image: ${SLIDE_VIEWER_IMAGE:?SLIDE_VIEWER_IMAGE must be an immutable image tag or digest}
     restart: unless-stopped
     environment:
-      REEF_ECS_ENDPOINT:         ${REEF_ECS_ENDPOINT:?REEF_ECS_ENDPOINT is required}
-      REEF_AWS_KEY:              ${REEF_AWS_KEY:?REEF_AWS_KEY is required}
-      REEF_AWS_SECRET:           ${REEF_AWS_SECRET:?REEF_AWS_SECRET is required}
-      AWS_ENDPOINT_URL:          ${REEF_ECS_ENDPOINT}
-      AWS_ACCESS_KEY_ID:         ${REEF_AWS_KEY}
-      AWS_SECRET_ACCESS_KEY:     ${REEF_AWS_SECRET}
-      REEF_S3_BUCKET:            ${REEF_S3_BUCKET:-mskmind-bkt}
-      REEF_S3_PREFIX:            ${REEF_S3_PREFIX:-reef-slides}
-      REDIS_URL:                 redis://slide-viewer-redis:6379
+      AWS_ENDPOINT_URL:          ${AWS_ENDPOINT_URL:?AWS_ENDPOINT_URL is required}
+      AWS_ACCESS_KEY_ID:         ${AWS_ACCESS_KEY_ID:?AWS_ACCESS_KEY_ID is required}
+      AWS_SECRET_ACCESS_KEY:     ${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY is required}
+      REDIS_URL:                 redis://:${SLIDE_VIEWER_REDIS_PASSWORD:?SLIDE_VIEWER_REDIS_PASSWORD is required}@slide-viewer-redis:6379
       WSI_AUTH_SECRET:           ${WSI_AUTH_SECRET:?WSI_AUTH_SECRET is required}
       WSI_AUTH_AUDIENCE:         ${WSI_AUTH_AUDIENCE:-cbioportal-wsi}
       WSI_AUTH_MAX_TTL:          ${WSI_AUTH_MAX_TTL:-300}
       WSI_ALLOWED_SOURCE_SCHEMES: ${WSI_ALLOWED_SOURCE_SCHEMES:-s3}
-    ports:
-      - "${SLIDE_VIEWER_PORT:-8081}:8080"
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /cache/slide-blocks:rw,mode=1777
+      - /cache/prometheus:rw,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
     depends_on:
       slide-viewer-redis:
         condition: service_healthy
@@ -63,17 +68,31 @@ services:
       start_period: 10s
 
   slide-viewer-redis:
-    image: redis:7-alpine
+    image: redis:7.4.5-alpine
     restart: unless-stopped
     command: >
       redis-server
       --maxmemory ${SLIDE_VIEWER_REDIS_MAXMEMORY:-4gb}
       --maxmemory-policy allkeys-lru
       --save "" --appendonly no
+      --requirepass ${SLIDE_VIEWER_REDIS_PASSWORD:?SLIDE_VIEWER_REDIS_PASSWORD is required}
+    environment:
+      REDISCLI_AUTH: ${SLIDE_VIEWER_REDIS_PASSWORD:?SLIDE_VIEWER_REDIS_PASSWORD is required}
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    # The official Redis entrypoint drops from root to the redis user.
+    # These capabilities are limited to that startup transition.
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
     networks:
       - cbio-net
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli ping"]
       interval: 10s
       timeout: 3s
       retries: 3

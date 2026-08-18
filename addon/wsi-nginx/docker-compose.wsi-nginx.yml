@@ -11,7 +11,7 @@ services:
     container_name: cbioportal-wsi-nginx
     restart: unless-stopped
     ports:
-      - "${WSI_NGINX_PORT:-3001}:80"
+      - "${WSI_BIND_ADDRESS:-127.0.0.1}:${WSI_NGINX_PORT:-3001}:80"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:

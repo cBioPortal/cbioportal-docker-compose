@@ -1,0 +1,27 @@
+name: Validate WSI Compose profiles
+
+on:
+  pull_request:
+    paths:
+      - 'docker-compose.yml'
+      - 'addon/slide-viewer/**'
+      - 'addon/wsi-nginx/**'
+      - 'dev/keycloak/keycloak.yml'
+      - 'scripts/validate-wsi-compose.sh'
+      - '.github/workflows/wsi-compose.yml'
+  push:
+    paths:
+      - 'docker-compose.yml'
+      - 'addon/slide-viewer/**'
+      - 'addon/wsi-nginx/**'
+      - 'dev/keycloak/keycloak.yml'
+      - 'scripts/validate-wsi-compose.sh'
+      - '.github/workflows/wsi-compose.yml'
+
+jobs:
+  compose-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate authenticated and development WSI profiles
+        run: ./scripts/validate-wsi-compose.sh
