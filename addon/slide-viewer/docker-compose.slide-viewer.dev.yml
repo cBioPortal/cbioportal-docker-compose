@@ -18,7 +18,8 @@ services:
       # The dev frontend runs on the host and calls the nginx WSI origin.
       # Keep this explicit; production deployments should provide their own
       # allowlist through CORS_ORIGINS.
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000,http://pllimsksparky1:3000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000,http://pllimsksparky1:3000,http://localhost:3001,http://127.0.0.1:3001,http://pllimsksparky1:3001}
+      WSI_ALLOW_FILE_SOURCES: ${WSI_ALLOW_FILE_SOURCES:-true}
       # The checked-in dev WSI fixture uses file:///app/testdata/*.jpg for
       # thumbnails. Enable the file source scheme only for this local fixture.
       WSI_ALLOWED_SOURCE_SCHEMES: ${WSI_ALLOWED_SOURCE_SCHEMES:-s3,file}
