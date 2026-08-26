@@ -42,6 +42,7 @@ services:
       WSI_AUTH_AUDIENCE:         ${WSI_AUTH_AUDIENCE:-cbioportal-wsi}
       WSI_AUTH_MAX_TTL:          ${WSI_AUTH_MAX_TTL:-300}
       WSI_ALLOWED_SOURCE_SCHEMES: ${WSI_ALLOWED_SOURCE_SCHEMES:-s3}
+      CACHE_MISS_RATE_LIMIT_PER_MINUTE: ${CACHE_MISS_RATE_LIMIT_PER_MINUTE:-1200}
     read_only: true
     tmpfs:
       - /tmp
