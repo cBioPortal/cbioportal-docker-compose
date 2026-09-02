@@ -66,4 +66,76 @@ upload thumbnails. The Compose overlay supplies the shared WSI capability
 secret to the portal and tile server, but it does not replace the upstream
 artifact batch.
 
+After importing a study, run the release smoke check before testing it in the
+browser. This verifies that the catalog entry is visible and, for WSI studies,
+that the hierarchy contains slides and that a real thumbnail can be fetched
+through the tile service:
+
+```bash
+python3 scripts/verify-study-load.py \
+  --portal-url http://localhost:8080 \
+  --study-id <study_id> \
+  --study-dir study/<study_id> \
+  --timeline-dir study/<study_id> \
+  --clickhouse-container cbioportal-database-container \
+  --check-study-view \
+  --check-timeline \
+  --require-wsi --check-all-wsi --check-all-access \
+  --check-wsi-clinical-counts \
+  --tile-url http://localhost:8081
+```
+
+For a complete study release, add `--check-all-data`. It requires both
+`--study-dir` and `--clickhouse-container` and compares the source snapshot
+with ClickHouse for clinical patients/samples, every mutation row, discrete CNA
+events, structural variants, copy-number segments, and every gene-panel
+mapping. The mutation meta file must explicitly set
+`variant_classification_filter: __NONE__` to require all source mutations (or
+list intentional exclusions). It also verifies that all mutation/CNA symbols
+resolve through the canonical gene or alias seed and that no
+structural-variant row has both genes unresolved. A successful importer process
+or a healthy HTTP endpoint is not a completeness check; use this flag as the
+release gate:
+
+```bash
+python3 scripts/verify-study-load.py \
+  --portal-url http://localhost:8080 \
+  --study-id <study_id> \
+  --study-dir study/<study_id> \
+  --clickhouse-container cbioportal-database-container \
+  --check-study-view --check-all-data
+```
+
+For an authenticated deployment, provide a short-lived portal session cookie
+with `--cookie` (or `VERIFY_COOKIE`) for the hierarchy and access checks. The
+command exits non-zero on a missing catalog entry, empty WSI hierarchy, invalid
+snapshot manifest, incomplete access bundle, or failed thumbnail request; it
+also compares the imported ClickHouse WSI row/servable counts when
+`--clickhouse-container` is supplied. `--check-study-view` additionally catches
+an import where raw tables are populated but ClickHouse derived tables were not
+rebuilt. `--check-all-wsi` compares every patient hierarchy and slide to the
+snapshot; `--check-all-access` validates every servable slide's access bundle
+and thumbnail request. Add `--check-all-tiles` to issue an authenticated tile
+request for every servable slide as well; this is intentionally opt-in because
+it can be expensive for large remote slides. For a large study, combine it
+with `--max-tile-checks N` to retain full hierarchy/access/thumbnail coverage
+while issuing tile requests for only the first N servable slides. `--check-timeline` validates
+pathology event counts and linkouts. When `--wsi-patient-id` is supplied with a
+WSI snapshot, it also requires every slide for that patient to be represented
+in the timeline.
+`--check-wsi-clinical-counts` verifies the
+sample- and patient-level attributes in ClickHouse and confirms the portal
+clinical-data API exposes patient-level WSI values used to populate the Study
+View WSI columns. Set `CLICKHOUSE_PASSWORD` in the environment rather than
+putting it in a command or checked-in file. The check does not print source
+URLs, slide identifiers, or tokens; an explicitly requested
+`--wsi-patient-id` is echoed in the summary so the targeted result is
+unambiguous.
+Use `--wsi-patient-id <patient_id>` with `--study-dir` to target a specific
+patient when investigating a missing-slide report; the hierarchy and access
+smoke checks then run against that patient instead of an arbitrary servable
+patient. Combine it with `--check-all-access` (and optionally
+`--check-all-tiles`) to validate every slide for that patient without running
+the expensive whole-study check.
+
 For documentation and usage instructions, see here: https://docs.cbioportal.org/deployment/docker/

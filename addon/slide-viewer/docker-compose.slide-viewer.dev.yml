@@ -12,6 +12,8 @@ services:
     entrypoint: ["/__cacert_entrypoint.sh"]
     environment:
       WSI_LOCAL_AUTH_BYPASS: "true"
+      WSI_ALLOWED_SOURCE_PREFIXES: ${WSI_ALLOWED_SOURCE_PREFIXES:-s3://mskmind-bkt/reef-slides/,s3://pathology/CRC_21-167/slides/,s3://pathology/CRC_21-167/crc_slides/,s3://pathology/CART_19-373/,s3://pathology/BR_20-226/slides/,file:///app/testdata/}
+      WSI_ALLOWED_THUMBNAIL_PREFIXES: ${WSI_ALLOWED_THUMBNAIL_PREFIXES:-s3://mskmind-bkt/wsi-thumbnails/,file:///app/testdata/}
 
   slide-viewer:
     environment:
@@ -23,12 +25,11 @@ services:
       # The checked-in dev WSI fixture uses file:///app/testdata/*.jpg for
       # thumbnails. Enable the file source scheme only for this local fixture.
       WSI_ALLOWED_SOURCE_SCHEMES: ${WSI_ALLOWED_SOURCE_SCHEMES:-s3,file}
+      WSI_ALLOWED_SOURCE_PREFIXES: ${WSI_ALLOWED_SOURCE_PREFIXES:-s3://mskmind-bkt/reef-slides/,s3://pathology/CRC_21-167/slides/,s3://pathology/CRC_21-167/crc_slides/,s3://pathology/CART_19-373/,s3://pathology/BR_20-226/slides/,file:///app/testdata/}
+      WSI_ALLOWED_THUMBNAIL_PREFIXES: ${WSI_ALLOWED_THUMBNAIL_PREFIXES:-s3://mskmind-bkt/wsi-thumbnails/,file:///app/testdata/}
     volumes:
-      - "${WSI_TESTDATA_DIR:-/gpfs/mskmind_ess/limr/repos/latest-stack/cbioportal-tile-server/tests/testdata}:/app/testdata:ro"
+      - "${WSI_TESTDATA_DIR:-/gpfs/cdsi_ess/home/limr/repos/latest-stack/cbioportal-tile-server/tests/testdata}:/app/testdata:ro"
     ports:
-      # The frontend's direct WSI mode derives the tile endpoint from the
-      # browser hostname (for example, pllimsksparky1:8081).  Binding only to
-      # loopback makes that endpoint unreachable from the browser even though
-      # the container is healthy.  Keep the address override for restricted
-      # environments, but make the development default browser-reachable.
+      # Bind the tile endpoint to a browser-reachable address. The frontend's
+      # direct WSI mode uses WSI_TILE_SERVER when it is supplied.
       - "${WSI_BIND_ADDRESS:-0.0.0.0}:${SLIDE_VIEWER_PORT:-8081}:8080"

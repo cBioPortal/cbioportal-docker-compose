@@ -16,6 +16,8 @@
 #   WSI_AUTH_MAX_TTL=300
 #   WSI_LOCAL_AUTH_BYPASS=false (set true only in the explicit dev override)
 #   WSI_ALLOWED_SOURCE_SCHEMES=s3
+#   WSI_ALLOWED_SOURCE_PREFIXES=s3://mskmind-bkt/reef-slides/,s3://pathology/CRC_21-167/slides/,s3://pathology/CRC_21-167/crc_slides/,s3://pathology/CART_19-373/,s3://pathology/BR_20-226/slides/
+#   WSI_ALLOWED_THUMBNAIL_PREFIXES=s3://mskmind-bkt/wsi-thumbnails/
 #   SLIDE_VIEWER_PORT=8081        (host port only when using the dev override)
 #   SLIDE_VIEWER_IMAGE=<immutable image tag or digest>
 
@@ -42,6 +44,9 @@ services:
       WSI_AUTH_AUDIENCE:         ${WSI_AUTH_AUDIENCE:-cbioportal-wsi}
       WSI_AUTH_MAX_TTL:          ${WSI_AUTH_MAX_TTL:-300}
       WSI_ALLOWED_SOURCE_SCHEMES: ${WSI_ALLOWED_SOURCE_SCHEMES:-s3}
+      WSI_ALLOWED_SOURCE_PREFIXES: ${WSI_ALLOWED_SOURCE_PREFIXES:-s3://mskmind-bkt/reef-slides/,s3://pathology/CRC_21-167/slides/,s3://pathology/CRC_21-167/crc_slides/,s3://pathology/CART_19-373/,s3://pathology/BR_20-226/slides/}
+      WSI_ALLOWED_THUMBNAIL_PREFIXES: ${WSI_ALLOWED_THUMBNAIL_PREFIXES:-s3://mskmind-bkt/wsi-thumbnails/}
+      CACHE_MISS_RATE_LIMIT_PER_MINUTE: ${CACHE_MISS_RATE_LIMIT_PER_MINUTE:-2400}
     read_only: true
     tmpfs:
       - /tmp

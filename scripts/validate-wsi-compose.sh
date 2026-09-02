@@ -43,6 +43,9 @@ assert_contains "$authenticated_config" --authenticate=saml
 assert_contains "$authenticated_config" "WSI_LOCAL_AUTH_BYPASS: \"false\""
 assert_contains "$authenticated_config" "WSI_ACCESS_TOKEN_SECRET: test-wsi-capability-secret"
 assert_contains "$authenticated_config" "WSI_AUTH_SECRET: test-wsi-capability-secret"
+assert_contains "$authenticated_config" "WSI_ALLOWED_SOURCE_PREFIXES: s3://mskmind-bkt/reef-slides/"
+assert_contains "$authenticated_config" "WSI_ALLOWED_THUMBNAIL_PREFIXES: s3://mskmind-bkt/wsi-thumbnails/"
+assert_contains "$authenticated_config" "/etc/clickhouse-server/users.d/user_settings.xml"
 
 render_config "$development_config" \
   -f docker-compose.yml \
@@ -51,5 +54,7 @@ render_config "$development_config" \
   -f addon/wsi-nginx/docker-compose.wsi-nginx.yml
 assert_contains "$development_config" --authenticate=false
 assert_contains "$development_config" "WSI_LOCAL_AUTH_BYPASS: \"true\""
+assert_contains "$development_config" "file:///app/testdata/"
+assert_contains "$development_config" "/etc/clickhouse-server/users.d/user_settings.xml"
 
 echo "WSI Compose authenticated and development profiles are valid"
