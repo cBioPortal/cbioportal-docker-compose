@@ -46,7 +46,7 @@ services:
       WSI_ALLOWED_SOURCE_SCHEMES: ${WSI_ALLOWED_SOURCE_SCHEMES:-s3}
       WSI_ALLOWED_SOURCE_PREFIXES: ${WSI_ALLOWED_SOURCE_PREFIXES:-s3://mskmind-bkt/reef-slides/,s3://pathology/CRC_21-167/slides/,s3://pathology/CRC_21-167/crc_slides/,s3://pathology/CART_19-373/,s3://pathology/BR_20-226/slides/}
       WSI_ALLOWED_THUMBNAIL_PREFIXES: ${WSI_ALLOWED_THUMBNAIL_PREFIXES:-s3://mskmind-bkt/wsi-thumbnails/}
-      CACHE_MISS_RATE_LIMIT_PER_MINUTE: ${CACHE_MISS_RATE_LIMIT_PER_MINUTE:-2400}
+      CACHE_MISS_RATE_LIMIT_PER_MINUTE: ${CACHE_MISS_RATE_LIMIT_PER_MINUTE:-1200}
     read_only: true
     tmpfs:
       - /tmp
