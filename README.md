@@ -56,9 +56,11 @@ WSI release is imported, a separate cron, Slurm, or equivalent scheduled
 process must run the tile-server thumbnail batch, write master JPEGs to the
 S3/Dell ECS-compatible store, and populate
 `cdsi_prod.pathology_data_mining.slide_thumbnail_registry` with the artifact
-URI, `tile_metadata_json`, dimensions, and content type. The canonical
-Databricks refresh must wait for that job's completion watermark, and the
-standard cBioPortal core `metaImport.py` flow must then import the complete
+URI, `tile_metadata_json`, dimensions, content type, and source fingerprint.
+The production Databricks WSI bundle is maintained in the
+[`pdm_databricks_pipelines` WSI bundle](https://github.com/pathology-data-mining/pdm_databricks_pipelines/tree/main/pathology_data_mining/wsi_summary)
+and runs `wsi_summary_job` after the thumbnail batch's completion watermark.
+The standard cBioPortal core `metaImport.py` flow must then import the complete
 study-file snapshot.
 
 The frontend and online tile server are read-only and do not generate or
