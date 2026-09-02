@@ -11,13 +11,14 @@
 #   AWS_SECRET_ACCESS_KEY — ECS secret key
 #   WSI_AUTH_SECRET     — same capability secret as cBioPortal
 #
-# Optional env vars (defaults shown):
+# Additional env vars (source and thumbnail prefixes must be supplied for a
+# production deployment; the service remains unready when they are empty):
 #   WSI_AUTH_AUDIENCE=cbioportal-wsi
 #   WSI_AUTH_MAX_TTL=300
 #   WSI_LOCAL_AUTH_BYPASS=false (set true only in the explicit dev override)
 #   WSI_ALLOWED_SOURCE_SCHEMES=s3
-#   WSI_ALLOWED_SOURCE_PREFIXES=s3://mskmind-bkt/reef-slides/,s3://pathology/CRC_21-167/slides/,s3://pathology/CRC_21-167/crc_slides/,s3://pathology/CART_19-373/,s3://pathology/BR_20-226/slides/
-#   WSI_ALLOWED_THUMBNAIL_PREFIXES=s3://mskmind-bkt/wsi-thumbnails/
+#   WSI_ALLOWED_SOURCE_PREFIXES=<approved source URI prefixes>
+#   WSI_ALLOWED_THUMBNAIL_PREFIXES=<approved thumbnail URI prefixes>
 #   SLIDE_VIEWER_PORT=8081        (host port only when using the dev override)
 #   SLIDE_VIEWER_IMAGE=<immutable image tag or digest>
 
@@ -31,6 +32,8 @@ services:
       WSI_ACCESS_TOKEN_AUDIENCE: ${WSI_AUTH_AUDIENCE:-cbioportal-wsi}
       WSI_ACCESS_TOKEN_TTL_SECONDS: ${WSI_AUTH_MAX_TTL:-300}
       WSI_LOCAL_AUTH_BYPASS: ${WSI_LOCAL_AUTH_BYPASS:-false}
+      WSI_ALLOWED_SOURCE_PREFIXES: ${WSI_ALLOWED_SOURCE_PREFIXES:-}
+      WSI_ALLOWED_THUMBNAIL_PREFIXES: ${WSI_ALLOWED_THUMBNAIL_PREFIXES:-}
 
   slide-viewer:
     image: ${SLIDE_VIEWER_IMAGE:?SLIDE_VIEWER_IMAGE must be an immutable image tag or digest}
@@ -44,8 +47,8 @@ services:
       WSI_AUTH_AUDIENCE:         ${WSI_AUTH_AUDIENCE:-cbioportal-wsi}
       WSI_AUTH_MAX_TTL:          ${WSI_AUTH_MAX_TTL:-300}
       WSI_ALLOWED_SOURCE_SCHEMES: ${WSI_ALLOWED_SOURCE_SCHEMES:-s3}
-      WSI_ALLOWED_SOURCE_PREFIXES: ${WSI_ALLOWED_SOURCE_PREFIXES:-s3://mskmind-bkt/reef-slides/,s3://pathology/CRC_21-167/slides/,s3://pathology/CRC_21-167/crc_slides/,s3://pathology/CART_19-373/,s3://pathology/BR_20-226/slides/}
-      WSI_ALLOWED_THUMBNAIL_PREFIXES: ${WSI_ALLOWED_THUMBNAIL_PREFIXES:-s3://mskmind-bkt/wsi-thumbnails/}
+      WSI_ALLOWED_SOURCE_PREFIXES: ${WSI_ALLOWED_SOURCE_PREFIXES:-}
+      WSI_ALLOWED_THUMBNAIL_PREFIXES: ${WSI_ALLOWED_THUMBNAIL_PREFIXES:-}
       CACHE_MISS_RATE_LIMIT_PER_MINUTE: ${CACHE_MISS_RATE_LIMIT_PER_MINUTE:-1200}
     read_only: true
     tmpfs:
@@ -66,7 +69,7 @@ services:
     networks:
       - cbio-net
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/ready"]
       interval: 30s
       timeout: 5s
       retries: 3

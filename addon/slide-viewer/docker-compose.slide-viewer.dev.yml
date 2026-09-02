@@ -12,8 +12,8 @@ services:
     entrypoint: ["/__cacert_entrypoint.sh"]
     environment:
       WSI_LOCAL_AUTH_BYPASS: "true"
-      WSI_ALLOWED_SOURCE_PREFIXES: ${WSI_ALLOWED_SOURCE_PREFIXES:-s3://mskmind-bkt/reef-slides/,s3://pathology/CRC_21-167/slides/,s3://pathology/CRC_21-167/crc_slides/,s3://pathology/CART_19-373/,s3://pathology/BR_20-226/slides/,file:///app/testdata/}
-      WSI_ALLOWED_THUMBNAIL_PREFIXES: ${WSI_ALLOWED_THUMBNAIL_PREFIXES:-s3://mskmind-bkt/wsi-thumbnails/,file:///app/testdata/}
+      WSI_ALLOWED_SOURCE_PREFIXES: ${WSI_ALLOWED_SOURCE_PREFIXES:-file:///app/testdata/}
+      WSI_ALLOWED_THUMBNAIL_PREFIXES: ${WSI_ALLOWED_THUMBNAIL_PREFIXES:-file:///app/testdata/}
 
   slide-viewer:
     environment:
@@ -25,8 +25,8 @@ services:
       # The checked-in dev WSI fixture uses file:///app/testdata/*.jpg for
       # thumbnails. Enable the file source scheme only for this local fixture.
       WSI_ALLOWED_SOURCE_SCHEMES: ${WSI_ALLOWED_SOURCE_SCHEMES:-s3,file}
-      WSI_ALLOWED_SOURCE_PREFIXES: ${WSI_ALLOWED_SOURCE_PREFIXES:-s3://mskmind-bkt/reef-slides/,s3://pathology/CRC_21-167/slides/,s3://pathology/CRC_21-167/crc_slides/,s3://pathology/CART_19-373/,s3://pathology/BR_20-226/slides/,file:///app/testdata/}
-      WSI_ALLOWED_THUMBNAIL_PREFIXES: ${WSI_ALLOWED_THUMBNAIL_PREFIXES:-s3://mskmind-bkt/wsi-thumbnails/,file:///app/testdata/}
+      WSI_ALLOWED_SOURCE_PREFIXES: ${WSI_ALLOWED_SOURCE_PREFIXES:-file:///app/testdata/}
+      WSI_ALLOWED_THUMBNAIL_PREFIXES: ${WSI_ALLOWED_THUMBNAIL_PREFIXES:-file:///app/testdata/}
     volumes:
       - "${WSI_TESTDATA_DIR:-/gpfs/cdsi_ess/home/limr/repos/latest-stack/cbioportal-tile-server/tests/testdata}:/app/testdata:ro"
     ports:

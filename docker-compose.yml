@@ -7,8 +7,6 @@ services:
       - .env
     environment:
       SERVER_PORT: ${CBIOPORTAL_SERVER_PORT}
-      WSI_ALLOWED_SOURCE_PREFIXES: ${WSI_ALLOWED_SOURCE_PREFIXES:-s3://mskmind-bkt/reef-slides/,s3://pathology/CRC_21-167/slides/,s3://pathology/CRC_21-167/crc_slides/,s3://pathology/CART_19-373/,s3://pathology/BR_20-226/slides/}
-      WSI_ALLOWED_THUMBNAIL_PREFIXES: ${WSI_ALLOWED_THUMBNAIL_PREFIXES:-s3://mskmind-bkt/wsi-thumbnails/}
     ports:
       - "${CBIOPORTAL_SERVER_PORT:-8080}:${CBIOPORTAL_SERVER_PORT:-8080}"
     entrypoint: [ "/cbioportal/entrypoint.sh" ]

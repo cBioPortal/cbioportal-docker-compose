@@ -30,4 +30,4 @@ replace_generated_file() {
 
 replace_generated_file /cbioportal/db-scripts/clickhouse/init/schema.sql "${SCRIPT_DIR}/schema.sql"
 replace_generated_file /cbioportal/db-scripts/clickhouse/init/seed-cbioportal_hg19_hg38_v2.14.5.sql.gz "${SCRIPT_DIR}/seed.sql.gz"
-replace_generated_file /cbioportal/db-scripts/clickhouse/clickhouse.sql "${SCRIPT_DIR}/clickhouse.sql"
+replace_generated_file /cbioportal/db-scripts/clickhouse/populate_derived_tables.sql "${SCRIPT_DIR}/clickhouse.sql"

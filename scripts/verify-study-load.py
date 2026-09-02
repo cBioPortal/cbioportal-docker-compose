@@ -442,7 +442,6 @@ WITH expected AS (
     INNER JOIN cancer_study study
         ON study.cancer_study_id = placement.cancer_study_id
     WHERE study.cancer_study_identifier = '{escaped_study_id}'
-      AND placement.sample_id IS NOT NULL
     GROUP BY placement.patient_id
 ), actual_patients AS (
     SELECT internal_id AS patient_id,
