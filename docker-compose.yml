@@ -1,19 +1,18 @@
 services:
   cbioportal:
     restart: unless-stopped
-    image: ${DOCKER_IMAGE_CBIOPORTAL}
+    image: ${CP_DOCKER_IMAGE_CBIOPORTAL}
     container_name: cbioportal-container
     env_file:
       - .env
     environment:
-      SERVER_PORT: ${CBIOPORTAL_SERVER_PORT}
+      SERVER_PORT: ${CP_CBIOPORTAL_SERVER_PORT}
     ports:
-      - "8080:8080"
+      - "${CP_CBIOPORTAL_SERVER_PORT}:${CP_CBIOPORTAL_SERVER_PORT}"
     entrypoint: [ "/cbioportal/entrypoint.sh" ]
     volumes:
       - ./study:/study/
       - ./entrypoint.sh:/cbioportal/entrypoint.sh
-
       - ${APPLICATION_PROPERTIES_PATH:-./config/application.properties}:/cbioportal-webapp/application.properties:ro
       # We need to mount the derived table script into the cbioportal container
       # The metaImport script looks for it under $PORTAL_HOME
@@ -25,29 +24,37 @@ services:
         condition: service_started
     networks:
      - cbio-net
-    command: /bin/sh -c "java -Xms2g -Xmx4g -cp '/cbioportal-webapp:/cbioportal-webapp/lib/*' org.cbioportal.PortalApplication --spring.config.location=file:/cbioportal-webapp/application.properties --authenticate=false --session.service.url=http://cbioportal-session:5001/api/sessions/my_portal/ --clickhouse_mode=true --spring.profiles.active=clickhouse"
+    command: /bin/sh -c "java -Xms2g -Xmx4g -cp '/cbioportal-webapp:/cbioportal-webapp/lib/*' org.cbioportal.PortalApplication --spring.config.location=file:/cbioportal-webapp/application.properties --authenticate=false --session.service.url=http://cbioportal-session:${CP_SESSION_SERVICE_SERVER_PORT}/api/sessions/my_portal/ --clickhouse_mode=true --spring.profiles.active=clickhouse"
 
   cbioportal-database:
     restart: unless-stopped
-    image: ${DOCKER_IMAGE_CLICKHOUSE}
+    image: ${CP_DOCKER_IMAGE_CLICKHOUSE}
     container_name: cbioportal-database-container
     env_file:
       - .env
     ports:
-      - "8123:8123"
-      - "9000:9000"
+      - ${CP_CLICKHOUSE_HTTP_INSECURE_PORT}:${CP_CLICKHOUSE_HTTP_INSECURE_PORT}
+      - ${CP_CLICKHOUSE_HTTP_SECURE_PORT}:${CP_CLICKHOUSE_HTTP_SECURE_PORT}
+      - ${CP_CLICKHOUSE_NATIVE_INSECURE_PORT}:${CP_CLICKHOUSE_NATIVE_INSECURE_PORT}
+      - ${CP_CLICKHOUSE_NATIVE_SECURE_PORT}:${CP_CLICKHOUSE_NATIVE_SECURE_PORT}
     volumes:
       - ./data/schema.sql:/data/schema.sql:ro
-      - ./data/load_schema.sh:/docker-entrypoint-initdb.d/001_load_schema.sh:ro
       - ./data/seed.sql.gz:/data/seed.sql.gz:ro
-      - ./data/load_seed.sh:/docker-entrypoint-initdb.d/002_load_seed.sh:ro
       - ./data/clickhouse.sql:/data/clickhouse.sql:ro
-      - ./data/load_derived_tables.sh:/docker-entrypoint-initdb.d/003_load_derived_tables.sh:ro
+      - .${CP_CLICKHOUSE_CLIENT_EXTERNAL_CONFIG_FOR_WEB_APP_PATH}:${CP_CLICKHOUSE_CLIENT_EXTERNAL_CONFIG_FOR_WEB_APP_PATH}:rw
+      - .${CP_CLICKHOUSE_CLIENT_EXTERNAL_CONFIG_FOR_DB_UPDATE_PATH}:${CP_CLICKHOUSE_CLIENT_EXTERNAL_CONFIG_FOR_DB_UPDATE_PATH}:rw
+      - .${CP_CLICKHOUSE_CLIENT_EXTERNAL_CONFIG_FOR_DB_ADMIN_PATH}:${CP_CLICKHOUSE_CLIENT_EXTERNAL_CONFIG_FOR_DB_ADMIN_PATH}:rw
+      - ./data/write_clickhouse_client_config_files.sh:/docker-entrypoint-initdb.d/001_write_clickhouse_client_config_files.sh:ro
+      - ./data/create_cbioportal_database.sh:/docker-entrypoint-initdb.d/002_create_cbioportal_database.sh:ro
+      - ./data/create_cbio_users_and_grant_privileges.sh:/docker-entrypoint-initdb.d/003_create_users_and_write_privileges.sh:ro
+      - ./data/load_schema.sh:/docker-entrypoint-initdb.d/004_load_schema.sh:ro
+      - ./data/load_seed.sh:/docker-entrypoint-initdb.d/005_load_seed.sh:ro
+      - ./data/load_derived_tables.sh:/docker-entrypoint-initdb.d/006_load_derived_tables.sh:ro
       - cbioportal_clickhouse_data:/var/lib/clickhouse
     networks:
       - cbio-net
     healthcheck:
-      test: ["CMD-SHELL", "clickhouse-client --user=$$CLICKHOUSE_USER --password=$$CLICKHOUSE_PASSWORD --query=\"SELECT COUNT(*) FROM $$CLICKHOUSE_DB.type_of_cancer\" 2>/dev/null | grep -q '^[1-9]'"]
+      test: ["CMD-SHELL", "clickhouse client --config-file=.${CP_CLICKHOUSE_CLIENT_EXTERNAL_CONFIG_FOR_DB_UPDATE_PATH} --query=\"SELECT COUNT(*) FROM $$CP_CLICKHOUSE_DB.type_of_cancer\" 2>/dev/null | grep -q '^[1-9]'"]
       interval: 10s
       timeout: 3s
       retries: 300
@@ -55,13 +62,13 @@ services:
 
   cbioportal-session:
     restart: unless-stopped
-    image: ${DOCKER_IMAGE_SESSION_SERVICE}
+    image: ${CP_DOCKER_IMAGE_SESSION_SERVICE}
     container_name: cbioportal-session-container
     env_file:
       - .env
     environment:
-      SERVER_PORT: ${SESSION_SERVICE_SERVER_PORT}
-      JAVA_OPTS: ${SESSION_SERVICE_JAVA_OPTS}
+      SERVER_PORT: ${CP_SESSION_SERVICE_SERVER_PORT}
+      JAVA_OPTS: ${CP_SESSION_SERVICE_JAVA_OPTS}
     depends_on:
       - cbioportal-session-database
     networks:
