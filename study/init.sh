@@ -11,11 +11,22 @@ rm -rf "${SCRIPT_DIR}/study_es_0"
 cp -r "$CBIO_REPO/test/test_data/study_es_0" "${SCRIPT_DIR}/study_es_0"
 
 # Download datahub studies
-DATAHUB_STUDIES="${DATAHUB_STUDIES:-lgg_ucsf_2014 msk_impact_2017}"
+DATAHUB_STUDIES="${DATAHUB_STUDIES:-lgg_ucsf_2014 msk_impact_2017 msk_spectrum_tme_2022}"
 for study in ${DATAHUB_STUDIES}; do
     curl -fL -o "${study}.tar.gz" "https://datahub.assets.cbioportal.org/${study}.tar.gz"
     tar xfz "${study}.tar.gz"
     rm "${study}.tar.gz"
+
+    # The release gate treats an omitted mutation filter as a dangerous
+    # default: cBioPortal silently drops non-coding classifications in that
+    # mode.  Keep the complete MSK-IMPACT source snapshot explicit so a fresh
+    # stack imports every source mutation row and the verifier can enforce it.
+    if [ "${study}" = "msk_impact_2017" ] \
+        && [ -f "${SCRIPT_DIR}/${study}/meta_mutations.txt" ] \
+        && ! grep -q '^variant_classification_filter:' "${SCRIPT_DIR}/${study}/meta_mutations.txt"; then
+        printf '\nvariant_classification_filter: __NONE__\n' \
+            >> "${SCRIPT_DIR}/${study}/meta_mutations.txt"
+    fi
 done
 
 # Collect gene panel reference data

@@ -1,0 +1,35 @@
+# Explicit local-development override for the WSI slide viewer.
+#
+# This file intentionally enables anonymous WSI access. Do not include it in
+# a shared or production Compose invocation.
+
+services:
+  cbioportal:
+    # The cached WSI-enabled image has a JRE rather than the full JDK and
+    # therefore cannot run the base compose importer's `jar` bootstrap.
+    # Its image entrypoint still performs the normal CA setup and launches
+    # the Java command supplied by the base service.
+    entrypoint: ["/__cacert_entrypoint.sh"]
+    environment:
+      WSI_LOCAL_AUTH_BYPASS: "true"
+      WSI_ALLOWED_SOURCE_PREFIXES: ${WSI_ALLOWED_SOURCE_PREFIXES:-file:///app/testdata/}
+      WSI_ALLOWED_THUMBNAIL_PREFIXES: ${WSI_ALLOWED_THUMBNAIL_PREFIXES:-file:///app/testdata/}
+
+  slide-viewer:
+    environment:
+      # The dev frontend runs on the host and calls the nginx WSI origin.
+      # Keep this explicit; production deployments should provide their own
+      # allowlist through CORS_ORIGINS.
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000,http://pllimsksparky1:3000,http://localhost:3001,http://127.0.0.1:3001,http://pllimsksparky1:3001}
+      WSI_ALLOW_FILE_SOURCES: ${WSI_ALLOW_FILE_SOURCES:-true}
+      # The checked-in dev WSI fixture uses file:///app/testdata/*.jpg for
+      # thumbnails. Enable the file source scheme only for this local fixture.
+      WSI_ALLOWED_SOURCE_SCHEMES: ${WSI_ALLOWED_SOURCE_SCHEMES:-s3,file}
+      WSI_ALLOWED_SOURCE_PREFIXES: ${WSI_ALLOWED_SOURCE_PREFIXES:-file:///app/testdata/}
+      WSI_ALLOWED_THUMBNAIL_PREFIXES: ${WSI_ALLOWED_THUMBNAIL_PREFIXES:-file:///app/testdata/}
+    volumes:
+      - "${WSI_TESTDATA_DIR:-/gpfs/cdsi_ess/home/limr/repos/latest-stack/cbioportal-tile-server/tests/testdata}:/app/testdata:ro"
+    ports:
+      # Bind the tile endpoint to a browser-reachable address. The frontend's
+      # direct WSI mode uses WSI_TILE_SERVER when it is supplied.
+      - "${WSI_BIND_ADDRESS:-0.0.0.0}:${SLIDE_VIEWER_PORT:-8081}:8080"

@@ -2,6 +2,9 @@
 docker-compose.override.yml
 data/*
 study/*
+!study/msk_spectrum_tme_2022/
+!study/msk_spectrum_tme_2022/meta_wsi.txt
+!study/msk_spectrum_tme_2022/data_wsi.txt
 config/portal.properties
 config/application.properties
 !*.sh
