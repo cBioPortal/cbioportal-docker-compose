@@ -25,13 +25,21 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Iterable
 
 
 class VerificationError(RuntimeError):
     """A user-actionable release verification failure."""
+
+
+def _http_timeout_seconds() -> float:
+    """Use a generous portal timeout for large studies, without hanging forever."""
+    try:
+        return max(1.0, float(os.environ.get("VERIFY_HTTP_TIMEOUT_SECONDS", "120")))
+    except ValueError:
+        return 120.0
 
 
 def _safe_tile_level(metadata: dict[str, Any]) -> int:
@@ -121,7 +129,7 @@ def _request_json(url: str, cookie: str = "") -> Any:
     if cookie:
         request.add_header("Cookie", cookie)
     try:
-        with urllib.request.urlopen(request, timeout=20) as response:
+        with urllib.request.urlopen(request, timeout=_http_timeout_seconds()) as response:
             return json.load(response)
     except urllib.error.HTTPError as error:
         raise VerificationError(f"HTTP {error.code} from portal API") from None
@@ -142,7 +150,7 @@ def _request_json_post(url: str, body: Any, cookie: str = "") -> Any:
     if cookie:
         request.add_header("Cookie", cookie)
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
+        with urllib.request.urlopen(request, timeout=_http_timeout_seconds()) as response:
             return json.load(response)
     except urllib.error.HTTPError as error:
         raise VerificationError(f"HTTP {error.code} from portal API") from None
@@ -151,11 +159,18 @@ def _request_json_post(url: str, body: Any, cookie: str = "") -> Any:
 
 
 def _request_bytes(
-    url: str, *, cookie: str = "", bearer: str = "", source: str = ""
+    url: str,
+    *,
+    cookie: str = "",
+    bearer: str = "",
+    source: str = "",
+    origin: str = "",
 ) -> int:
     headers = {"Accept": "image/jpeg"}
     if source:
         headers["X-WSI-Source"] = source
+    if origin:
+        headers["Origin"] = origin
     request = urllib.request.Request(url, headers=headers)
     if cookie:
         request.add_header("Cookie", cookie)
@@ -163,12 +178,81 @@ def _request_bytes(
         request.add_header("Authorization", f"Bearer {bearer}")
     try:
         with urllib.request.urlopen(request, timeout=30) as response:
+            content_type = response.headers.get_content_type()
+            if not content_type.startswith("image/"):
+                raise VerificationError(
+                    f"tile service returned non-image content type {content_type}"
+                )
+            if origin and response.headers.get("Access-Control-Allow-Origin") not in {
+                origin,
+                "*",
+            }:
+                raise VerificationError("tile service response is missing CORS origin")
             response.read(1)
             return response.status
     except urllib.error.HTTPError as error:
         raise VerificationError(f"HTTP {error.code} from tile service") from None
     except (urllib.error.URLError, TimeoutError) as error:
         raise VerificationError(f"tile service request failed: {type(error).__name__}") from None
+
+
+def _request_cors_preflight(url: str, origin: str) -> None:
+    """Verify the browser preflight needed for authenticated WSI requests."""
+    request = urllib.request.Request(
+        url,
+        headers={
+            "Origin": origin,
+            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "authorization,x-wsi-source",
+        },
+        method="OPTIONS",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            if response.status < 200 or response.status >= 300:
+                raise VerificationError("tile service CORS preflight failed")
+            if response.headers.get("Access-Control-Allow-Origin") not in {origin, "*"}:
+                raise VerificationError("tile service CORS preflight has no matching origin")
+            allowed_headers = {
+                value.strip().lower()
+                for value in (response.headers.get("Access-Control-Allow-Headers") or "").split(",")
+            }
+            if not {"authorization", "x-wsi-source"}.issubset(allowed_headers):
+                raise VerificationError("tile service CORS preflight omits WSI headers")
+    except urllib.error.HTTPError as error:
+        raise VerificationError(f"HTTP {error.code} from tile service CORS preflight") from None
+    except (urllib.error.URLError, TimeoutError) as error:
+        raise VerificationError(
+            f"tile service CORS preflight failed: {type(error).__name__}"
+        ) from None
+
+
+def _normalize_url(url: str) -> str:
+    return url.rstrip("/")
+
+
+def _portal_tile_server(args: argparse.Namespace, portal_url: str) -> tuple[str, str]:
+    """Resolve the browser tile endpoint from the portal's live config."""
+    config = _request_json(f"{portal_url}/config_service", args.cookie)
+    configured = config.get("msk_wsi_tile_server_url") if isinstance(config, dict) else None
+    if not isinstance(configured, str) or not configured.strip():
+        raise VerificationError("portal config does not advertise a WSI tile server URL")
+    tile_url = urllib.parse.urljoin(f"{portal_url}/", configured.strip())
+    parsed_tile = urllib.parse.urlparse(tile_url)
+    parsed_portal = urllib.parse.urlparse(portal_url)
+    if parsed_tile.scheme not in {"http", "https"} or not parsed_tile.netloc:
+        raise VerificationError("portal WSI tile server URL is not an absolute HTTP(S) URL")
+    expected = getattr(args, "expected_tile_url", "") or getattr(args, "tile_url", "")
+    if expected and _normalize_url(tile_url) != _normalize_url(expected):
+        raise VerificationError(
+            "portal WSI tile server URL differs from the expected deployment endpoint"
+        )
+    origin = f"{parsed_portal.scheme}://{parsed_portal.netloc}"
+    cross_origin = parsed_tile.netloc != parsed_portal.netloc
+    if cross_origin:
+        _request_cors_preflight(f"{tile_url.rstrip('/')}/thumbnails", origin)
+        _request_cors_preflight(f"{tile_url.rstrip('/')}/tiles/zxy/0/0/0", origin)
+    return tile_url.rstrip("/"), origin if cross_origin else ""
 
 
 def _parse_wsi_file(study_dir: Path) -> dict[str, Any]:
@@ -237,6 +321,7 @@ def _parse_wsi_file(study_dir: Path) -> dict[str, Any]:
         )
 
     manifest_path = study_dir / "wsi_snapshot_manifest.json"
+    manifest_timeline_events: int | None = None
     if manifest_path.is_file():
         try:
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -246,6 +331,26 @@ def _parse_wsi_file(study_dir: Path) -> dict[str, Any]:
             "cancer_study_identifier"
         ):
             raise VerificationError("WSI snapshot manifest study_id does not match meta_wsi.txt")
+        try:
+            incomplete_assets = int(manifest["incomplete_asset_count"])
+        except (KeyError, TypeError, ValueError):
+            raise VerificationError(
+                "wsi_snapshot_manifest.json is missing integer incomplete_asset_count"
+            ) from None
+        if incomplete_assets != 0:
+            raise VerificationError(
+                f"WSI snapshot contains {incomplete_assets} incomplete asset(s)"
+            )
+        try:
+            filtered_rows = int(manifest["filtered_row_count"])
+        except (KeyError, TypeError, ValueError):
+            raise VerificationError(
+                "wsi_snapshot_manifest.json is missing integer filtered_row_count"
+            ) from None
+        if filtered_rows != 0:
+            raise VerificationError(
+                f"WSI snapshot filtered {filtered_rows} association row(s)"
+            )
         expected_rows = manifest.get("association_row_count")
         if expected_rows is not None:
             try:
@@ -258,6 +363,13 @@ def _parse_wsi_file(study_dir: Path) -> dict[str, Any]:
                 raise VerificationError(
                     "WSI snapshot manifest row count does not match data_wsi.txt"
                 )
+        if manifest.get("timeline_event_count") is not None:
+            try:
+                manifest_timeline_events = int(manifest["timeline_event_count"])
+            except (TypeError, ValueError):
+                raise VerificationError(
+                    "wsi_snapshot_manifest.json timeline_event_count is not an integer"
+                ) from None
 
     servable_values = {"TRUE", "1", "YES"}
     patient_image_ids: dict[str, set[str]] = {}
@@ -298,6 +410,7 @@ def _parse_wsi_file(study_dir: Path) -> dict[str, Any]:
         "patients": patients,
         # Keep the identifier internal to the request; it is never printed.
         "smoke_patient": servable_patient,
+        "timeline_events": manifest_timeline_events,
     }
 
 
@@ -314,6 +427,152 @@ def _all_slides(value: Any) -> list[dict[str, Any]]:
     return slides
 
 
+def _pathology_linkout_candidates(
+    linkout: str, slides_by_patient: dict[str, list[dict[str, Any]]]
+) -> list[dict[str, Any]]:
+    """Return hierarchy slides addressed by one pathology linkout.
+
+    Linkouts are the only stable association key exposed by the public
+    timeline.  Matching them against the served hierarchy makes the release
+    check exercise the same capability gate as the browser: a retained
+    metadata row is not a viewable slide unless ``canServeTiles`` is true.
+    """
+    parsed = urllib.parse.urlparse(linkout)
+    query = urllib.parse.parse_qs(parsed.query)
+    if parsed.path != "/patient/wsiHESlides":
+        return []
+    patient_id = query.get("caseId", [""])[0]
+    sample_id = query.get("sampleId", [""])[0]
+    specimen_key = query.get("specimenKey", [""])[0]
+    match_level = query.get("matchLevel", [""])[0].upper()
+    stain_filter = query.get("stainFilter", [""])[0].lower()
+    candidates: list[dict[str, Any]] = []
+    for slide in slides_by_patient.get(patient_id, []):
+        slide_sample = str(slide.get("sampleId") or "")
+        slide_match = str(slide.get("matchLevel") or "").upper()
+        if sample_id and slide_sample != sample_id:
+            continue
+        if not sample_id and slide_sample:
+            continue
+        if specimen_key and slide.get("specimenKey") != specimen_key:
+            continue
+        if match_level and slide_match != match_level:
+            continue
+        if stain_filter == "hne" and slide.get("isHne") is not True:
+            continue
+        if stain_filter == "ihc" and slide.get("isIhc") is not True:
+            continue
+        candidates.append(slide)
+    return candidates
+
+
+def _validate_pathology_timeline_capability(
+    pathology_events: list[dict[str, Any]],
+    slides_by_patient: dict[str, list[dict[str, Any]]],
+) -> int:
+    """Reject timeline claims that cannot be served by the WSI hierarchy.
+
+    The old release verifier compared the timeline file only with the
+    clinical-events API.  That allowed both layers to agree on a stale
+    ``IMAGE_COUNT=2`` while the hierarchy correctly exposed two
+    ``canServeTiles=false`` rows.  This check closes that gap and is deliberately
+    based on the live hierarchy, not just the source TSV.
+    """
+    checked = 0
+    for event in pathology_events:
+        attributes = {
+            attribute.get("key"): attribute.get("value")
+            for attribute in event.get("attributes", [])
+            if isinstance(attribute, dict)
+        }
+        linkout = str(attributes.get("LINKOUT") or "").strip()
+        try:
+            image_count = int(attributes.get("IMAGE_COUNT") or 0)
+            non_servable = int(attributes.get("NON_SERVABLE_IMAGE_COUNT") or 0)
+            total = int(attributes.get("TOTAL_IMAGE_COUNT") or 0)
+        except (TypeError, ValueError):
+            raise VerificationError(
+                "pathology timeline has a non-numeric capability count"
+            ) from None
+
+        if not linkout:
+            if image_count or non_servable != total:
+                raise VerificationError(
+                    "pathology timeline has inconsistent non-servable counts without a WSI linkout"
+                )
+            checked += 1
+            continue
+
+        candidates = _pathology_linkout_candidates(linkout, slides_by_patient)
+        servable = sum(slide.get("canServeTiles") is True for slide in candidates)
+        actual_non_servable = len(candidates) - servable
+        if not candidates:
+            raise VerificationError(
+                "pathology timeline linkout does not resolve to a WSI hierarchy slide"
+            )
+        if servable == 0:
+            raise VerificationError(
+                "pathology timeline contains a linkout for a non-servable WSI group"
+            )
+        # A group may contain the same specimen on more than one timeline date,
+        # so the hierarchy can legitimately contain additional rows.  It may
+        # never contain fewer capable/non-capable rows than the event claims,
+        # and a linkout is forbidden when the addressed group has no servable
+        # pixels at all.
+        if image_count > servable or non_servable > actual_non_servable or total > len(candidates):
+            raise VerificationError(
+                "pathology timeline counts exceed the live WSI capability for a linkout: "
+                f"event={image_count}/{non_servable}/{total} "
+                f"hierarchy={servable}/{actual_non_servable}/{len(candidates)}"
+            )
+        if image_count == 0:
+            raise VerificationError(
+                "pathology timeline contains a linkout with zero servable slides"
+            )
+        checked += 1
+    return checked
+
+
+def _select_wsi_sample(
+    wsi: dict[str, Any], slides: list[dict[str, Any]], sample_size: int
+) -> list[dict[str, Any]]:
+    """Select stable servable slides across distinct patients."""
+    if sample_size <= 0:
+        raise VerificationError("--wsi-sample-size must be positive")
+    by_image_id = {
+        str(slide.get("imageId")): slide
+        for slide in slides
+        if slide.get("imageId") and slide.get("canServeTiles") is True
+    }
+    patient_candidates: list[dict[str, Any]] = []
+    for patient_id in sorted(wsi["servable_image_ids"]):
+        image_ids = sorted(wsi["servable_image_ids"][patient_id])
+        for image_id in image_ids:
+            slide = by_image_id.get(str(image_id))
+            if slide is not None:
+                patient_candidates.append(slide)
+                break
+    candidates = patient_candidates
+    if len(candidates) < sample_size:
+        remaining = [
+            by_image_id[image_id]
+            for image_id in sorted(by_image_id)
+            if by_image_id[image_id] not in candidates
+        ]
+        candidates = candidates + remaining
+    if not candidates:
+        return []
+    if len(candidates) <= sample_size:
+        return candidates
+    if sample_size == 1:
+        return candidates[:1]
+    indexes = [
+        round(index * (len(candidates) - 1) / (sample_size - 1))
+        for index in range(sample_size)
+    ]
+    return [candidates[index] for index in indexes]
+
+
 def _parse_timeline_file(study_dir: Path) -> dict[str, Any]:
     meta_path = study_dir / "meta_clinical_timeline_pathology_slides.txt"
     data_path = study_dir / "data_clinical_timeline_pathology_slides.txt"
@@ -322,6 +581,7 @@ def _parse_timeline_file(study_dir: Path) -> dict[str, Any]:
 
     rows = []
     patient_total_image_counts: Counter[str] = Counter()
+    patient_metrics: dict[str, Counter[str]] = defaultdict(Counter)
     with data_path.open(encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle, delimiter="\t")
         required = {
@@ -346,7 +606,14 @@ def _parse_timeline_file(study_dir: Path) -> dict[str, Any]:
             if image_count < 0 or non_servable < 0 or total != image_count + non_servable:
                 raise VerificationError("pathology timeline image counts are inconsistent")
             rows.append((image_count, non_servable, total, bool(row.get("LINKOUT"))))
-            patient_total_image_counts[str(row["PATIENT_ID"])] += total
+            patient_id = str(row["PATIENT_ID"])
+            patient_total_image_counts[patient_id] += total
+            metrics = patient_metrics[patient_id]
+            metrics["events"] += 1
+            metrics["image_count"] += image_count
+            metrics["non_servable_image_count"] += non_servable
+            metrics["total_image_count"] += total
+            metrics["linkouts"] += bool(row.get("LINKOUT"))
     if not rows:
         raise VerificationError("pathology timeline contains no events")
     return {
@@ -356,7 +623,28 @@ def _parse_timeline_file(study_dir: Path) -> dict[str, Any]:
         "total_image_count": sum(row[2] for row in rows),
         "linkouts": sum(row[3] for row in rows),
         "patient_total_image_counts": dict(patient_total_image_counts),
+        "patient_metrics": {
+            patient_id: dict(metrics)
+            for patient_id, metrics in patient_metrics.items()
+        },
     }
+
+
+def _select_timeline_patients(
+    patients: list[str], patient_metrics: dict[str, dict[str, int]], sample_size: int
+) -> list[str]:
+    """Select deterministic event-bearing patients for bounded API checks."""
+    candidates = [patient_id for patient_id in patients if patient_id in patient_metrics]
+    candidates = candidates or list(patients)
+    if sample_size <= 0 or sample_size >= len(candidates):
+        return candidates
+    if sample_size == 1:
+        return candidates[:1]
+    indexes = [
+        round(index * (len(candidates) - 1) / (sample_size - 1))
+        for index in range(sample_size)
+    ]
+    return [candidates[index] for index in indexes]
 
 
 def _study_record(studies: Any, study_id: str) -> dict[str, Any]:
@@ -592,6 +880,23 @@ def _data_file(study_dir: Path, name: str) -> Path:
     return path
 
 
+def _resolve_meta(study_dir: Path, *names: str) -> Path:
+    """Resolve a metadata file across importer-supported naming variants.
+
+    Public cBioPortal studies use both ``meta_mutations.txt`` and the more
+    explicit ``meta_mutations_extended.txt`` spelling.  Gene-panel matrices
+    likewise appear as ``meta_gene_panel_matrix.txt`` or
+    ``meta_gene_matrix.txt``.  The importer accepts both forms, so the
+    release verifier must not reject a valid study solely because of the
+    filename variant.
+    """
+    for name in names:
+        candidate = study_dir / name
+        if candidate.is_file():
+            return candidate
+    raise VerificationError(f"study directory is missing {' or '.join(names)}")
+
+
 def _meta_value(meta_path: Path, key: str) -> str | None:
     for line in meta_path.read_text(encoding="utf-8").splitlines():
         if line.strip() and not line.startswith("#") and ":" in line:
@@ -658,16 +963,23 @@ def _study_data_snapshot(args: argparse.Namespace, study_id: str, study_dir: Pat
     configured mutation filter, zero-width segments, and duplicate structural
     variants are called out rather than silently counted as missing data.
     """
-    mutation_path = _data_file(study_dir, "meta_mutations.txt")
-    cna_path = _data_file(study_dir, "meta_cna.txt")
-    sv_path = _data_file(study_dir, "meta_sv.txt")
-    seg_path = _data_file(study_dir, "meta_cna_hg19_seg.txt")
-    panel_path = _data_file(study_dir, "meta_gene_panel_matrix.txt")
+    mutation_meta = _resolve_meta(study_dir, "meta_mutations.txt", "meta_mutations_extended.txt")
+    cna_meta = _resolve_meta(study_dir, "meta_cna.txt", "meta_CNA.txt")
+    sv_meta = _resolve_meta(study_dir, "meta_sv.txt")
+    seg_meta = _resolve_meta(
+        study_dir, "meta_cna_hg19_seg.txt", "mskimpact_meta_cna_hg19_seg.txt"
+    )
+    panel_meta = _resolve_meta(study_dir, "meta_gene_panel_matrix.txt", "meta_gene_matrix.txt")
+    mutation_path = _data_file(study_dir, mutation_meta.name)
+    cna_path = _data_file(study_dir, cna_meta.name)
+    sv_path = _data_file(study_dir, sv_meta.name)
+    seg_path = _data_file(study_dir, seg_meta.name)
+    panel_path = _data_file(study_dir, panel_meta.name)
 
-    configured_filter = _meta_value(study_dir / "meta_mutations.txt", "variant_classification_filter")
+    configured_filter = _meta_value(mutation_meta, "variant_classification_filter")
     if configured_filter is None:
         raise VerificationError(
-            "meta_mutations.txt must explicitly set variant_classification_filter; "
+            f"{mutation_meta.name} must explicitly set variant_classification_filter; "
             "use __NONE__ to require every source mutation row or list intentional exclusions"
         )
     mutation_filter = (
@@ -1002,15 +1314,64 @@ def verify(args: argparse.Namespace) -> dict[str, Any]:
             )
         result["study_view_samples"] = len(filtered_samples)
 
+    # Parse the WSI snapshot before timeline checks so a large study can be
+    # queried patient-by-patient.  The study-wide clinical-events endpoint
+    # materializes every event attribute in one response and can exhaust the
+    # portal heap for cohorts with hundreds of thousands of events.
+    wsi: dict[str, Any] | None = _parse_wsi_file(args.study_dir) if args.study_dir else None
+
     if args.check_timeline:
         timeline_dir = args.timeline_dir or args.study_dir
         if timeline_dir is None:
             raise VerificationError("--check-timeline needs --timeline-dir or --study-dir")
         timeline = _parse_timeline_file(timeline_dir)
-        events = _request_json(
-            f"{portal_url}/api/studies/{encoded_study_id}/clinical-events",
-            args.cookie,
-        )
+        timeline_sampled = False
+        if wsi is not None:
+            if (
+                wsi.get("timeline_events") is not None
+                and wsi["timeline_events"] != timeline["events"]
+            ):
+                raise VerificationError(
+                    "WSI snapshot manifest timeline event count does not match the "
+                    "pathology timeline file"
+                )
+            def patient_events(patient_id: str) -> list[dict[str, Any]]:
+                encoded_patient_id = urllib.parse.quote(patient_id, safe="")
+                value = _request_json(
+                    f"{portal_url}/api/studies/{encoded_study_id}/patients/"
+                    f"{encoded_patient_id}/clinical-events?projection=SUMMARY"
+                    "&pageSize=100000&pageNumber=0",
+                    args.cookie,
+                )
+                return value if isinstance(value, list) else []
+
+            # A focused patient run must remain focused.  Expanding a
+            # ``--wsi-patient-id`` check to every patient defeats the purpose
+            # of the option and can overwhelm the portal with tens of
+            # thousands of requests (and hide the result behind an OOM).
+            if args.wsi_patient_id:
+                event_patients = [args.wsi_patient_id]
+            elif args.timeline_patient_sample and args.check_all_wsi:
+                # A full WSI hierarchy check can cover every patient without
+                # issuing one clinical-events request per patient. Sample
+                # event-bearing patients deterministically and compare the API
+                # counts with the corresponding release rows.
+                event_patients = _select_timeline_patients(
+                    wsi["patients"],
+                    timeline["patient_metrics"],
+                    args.timeline_patient_sample,
+                )
+                timeline_sampled = True
+            else:
+                event_patients = wsi["patients"]
+            with ThreadPoolExecutor(max_workers=24) as executor:
+                event_batches = list(executor.map(patient_events, event_patients))
+            events = [event for batch in event_batches for event in batch]
+        else:
+            events = _request_json(
+                f"{portal_url}/api/studies/{encoded_study_id}/clinical-events",
+                args.cookie,
+            )
         if not isinstance(events, list):
             raise VerificationError("clinical-events response is not an array")
         pathology_events = [
@@ -1018,9 +1379,45 @@ def verify(args: argparse.Namespace) -> dict[str, Any]:
             for event in events
             if isinstance(event, dict) and event.get("eventType") == "PATHOLOGY SLIDES"
         ]
-        if len(pathology_events) != timeline["events"]:
+        expected_timeline = {
+            "events": timeline["events"],
+            "image_count": timeline["image_count"],
+            "non_servable_image_count": timeline["non_servable_image_count"],
+            "total_image_count": timeline["total_image_count"],
+            "linkouts": timeline["linkouts"],
+        }
+        if args.wsi_patient_id:
+            patient_metrics = timeline["patient_metrics"].get(args.wsi_patient_id)
+            if patient_metrics is None:
+                raise VerificationError(
+                    f"pathology timeline has no events for {args.wsi_patient_id}"
+                )
+            expected_timeline = {
+                "events": patient_metrics["events"],
+                "image_count": patient_metrics["image_count"],
+                "non_servable_image_count": patient_metrics["non_servable_image_count"],
+                "total_image_count": patient_metrics["total_image_count"],
+                "linkouts": patient_metrics["linkouts"],
+            }
+        elif args.timeline_patient_sample and args.check_all_wsi and wsi is not None:
+            sampled_metrics = [
+                timeline["patient_metrics"].get(patient_id, {})
+                for patient_id in event_patients
+            ]
+            expected_timeline = {
+                key: sum(int(metrics.get(key, 0)) for metrics in sampled_metrics)
+                for key in (
+                    "events",
+                    "image_count",
+                    "non_servable_image_count",
+                    "total_image_count",
+                    "linkouts",
+                )
+            }
+        if len(pathology_events) != expected_timeline["events"]:
             raise VerificationError(
-                "pathology timeline event count does not match the release snapshot"
+                "pathology timeline event count mismatch: "
+                f"release={expected_timeline['events']} portal={len(pathology_events)}"
             )
         api_counts = {"image_count": 0, "non_servable_image_count": 0, "total_image_count": 0, "linkouts": 0}
         for event in pathology_events:
@@ -1039,12 +1436,22 @@ def verify(args: argparse.Namespace) -> dict[str, Any]:
                 raise VerificationError("pathology timeline has a non-numeric API image count") from None
             api_counts["linkouts"] += bool(attributes.get("LINKOUT"))
         if api_counts != {
-            "image_count": timeline["image_count"],
-            "non_servable_image_count": timeline["non_servable_image_count"],
-            "total_image_count": timeline["total_image_count"],
-            "linkouts": timeline["linkouts"],
+            "image_count": expected_timeline["image_count"],
+            "non_servable_image_count": expected_timeline["non_servable_image_count"],
+            "total_image_count": expected_timeline["total_image_count"],
+            "linkouts": expected_timeline["linkouts"],
         }:
-            raise VerificationError("pathology timeline counts do not match the release snapshot")
+            raise VerificationError(
+                "pathology timeline count mismatch: "
+                f"release={expected_timeline['image_count']}/"
+                f"{expected_timeline['non_servable_image_count']}/"
+                f"{expected_timeline['total_image_count']}/"
+                f"{expected_timeline['linkouts']} portal="
+                f"{api_counts['image_count']}/"
+                f"{api_counts['non_servable_image_count']}/"
+                f"{api_counts['total_image_count']}/"
+                f"{api_counts['linkouts']}"
+            )
         timeline_linkout_urls: list[str] = []
         for event in pathology_events:
             attributes = {
@@ -1054,14 +1461,14 @@ def verify(args: argparse.Namespace) -> dict[str, Any]:
             }
             if attributes.get("LINKOUT"):
                 timeline_linkout_urls.append(str(attributes["LINKOUT"]))
-        result["timeline_events"] = timeline["events"]
-        result["timeline_linkouts"] = timeline["linkouts"]
+        result["timeline_events"] = expected_timeline["events"]
+        result["timeline_linkouts"] = expected_timeline["linkouts"]
+        if timeline_sampled:
+            result["timeline_patients_checked"] = len(event_patients)
     else:
         timeline_linkout_urls = []
 
-    wsi: dict[str, Any] | None = None
-    if args.study_dir:
-        wsi = _parse_wsi_file(args.study_dir)
+    if wsi is not None:
         result["wsi_file_rows"] = wsi["rows"]
         result["wsi_file_servable"] = wsi["servable"]
         if args.check_timeline and args.wsi_patient_id:
@@ -1069,12 +1476,17 @@ def verify(args: argparse.Namespace) -> dict[str, Any]:
             patient_timeline_rows = timeline["patient_total_image_counts"].get(
                 args.wsi_patient_id, 0
             )
-            if patient_timeline_rows != patient_wsi_rows:
+            # Date-less associations remain in the WSI hierarchy but are
+            # intentionally absent from the date-based timeline.  Reject an
+            # over-count (which indicates duplicate/unrelated events), while
+            # allowing the validated undated remainder.
+            if patient_timeline_rows > patient_wsi_rows:
                 raise VerificationError(
-                    "pathology timeline does not represent every WSI slide for "
+                    "pathology timeline represents more slides than the WSI hierarchy for "
                     f"{args.wsi_patient_id}; timeline has {patient_timeline_rows} "
                     f"slides but the WSI snapshot has {patient_wsi_rows}"
                 )
+            result["wsi_patient_undated_timeline_slides"] = patient_wsi_rows - patient_timeline_rows
         if args.wsi_patient_id:
             if args.wsi_patient_id not in wsi["patient_image_ids"]:
                 raise VerificationError(
@@ -1086,7 +1498,11 @@ def verify(args: argparse.Namespace) -> dict[str, Any]:
         result["database_wsi_rows"] = db_rows
         result["database_wsi_servable"] = db_servable
         if wsi is not None and (db_rows != wsi["rows"] or db_servable != wsi["servable"]):
-            raise VerificationError("database WSI counts do not match the release snapshot")
+            raise VerificationError(
+                "database WSI count mismatch: "
+                f"release={wsi['rows']}/{wsi['servable']} "
+                f"database={db_rows}/{db_servable}"
+            )
         if args.check_wsi_clinical_counts:
             (
                 expected_samples,
@@ -1125,6 +1541,8 @@ def verify(args: argparse.Namespace) -> dict[str, Any]:
     if wsi is not None or args.require_wsi:
         if wsi is None:
             raise VerificationError("WSI hierarchy check requires a study directory")
+        portal_tile_url, portal_origin = _portal_tile_server(args, portal_url)
+        result["wsi_tile_server"] = "configured"
         if args.check_all_access and not (args.check_all_wsi or args.wsi_patient_id):
             raise VerificationError(
                 "--check-all-access requires --check-all-wsi or --wsi-patient-id"
@@ -1135,12 +1553,12 @@ def verify(args: argparse.Namespace) -> dict[str, Any]:
             )
         if args.check_all_tiles and not args.check_all_access:
             raise VerificationError("--check-all-tiles requires --check-all-access")
-        if args.check_all_tiles and not args.tile_url:
-            raise VerificationError("--check-all-tiles requires --tile-url")
         if args.max_tile_checks is not None and args.max_tile_checks <= 0:
             raise VerificationError("--max-tile-checks must be positive")
         if args.max_tile_checks is not None and not args.check_all_tiles:
             raise VerificationError("--max-tile-checks requires --check-all-tiles")
+        if args.timeline_patient_sample < 0:
+            raise VerificationError("--timeline-patient-sample must not be negative")
 
         all_hierarchy_slides: list[dict[str, Any]] = []
         if args.check_all_wsi:
@@ -1187,6 +1605,18 @@ def verify(args: argparse.Namespace) -> dict[str, Any]:
                 slide_list = patient_slides or []
                 slides_by_patient[patient_id] = slide_list
                 all_hierarchy_slides.extend(slide_list)
+            if args.check_timeline:
+                overcounted_patients = [
+                    patient_id
+                    for patient_id, patient_slides in slides_by_patient.items()
+                    if timeline["patient_total_image_counts"].get(patient_id, 0)
+                    > len(patient_slides)
+                ]
+                if overcounted_patients:
+                    raise VerificationError(
+                        "pathology timeline represents more slides than the WSI hierarchy "
+                        f"for {len(overcounted_patients)} patient(s)"
+                    )
             slides = all_hierarchy_slides
             servable_slides = [
                 slide for slide in slides if slide.get("canServeTiles") is True
@@ -1203,6 +1633,7 @@ def verify(args: argparse.Namespace) -> dict[str, Any]:
             servable_slides = [
                 slide for slide in slides if slide.get("canServeTiles") is True
             ]
+            slides_by_patient = {smoke_patient: slides}
             if args.wsi_patient_id:
                 actual_images = {
                     str(slide.get("imageId"))
@@ -1250,44 +1681,24 @@ def verify(args: argparse.Namespace) -> dict[str, Any]:
             )
 
         if args.check_timeline and args.check_all_wsi:
-            invalid_linkouts = 0
-            for linkout in timeline_linkout_urls:
-                parsed = urllib.parse.urlparse(linkout)
-                query = urllib.parse.parse_qs(parsed.query)
-                patient_id = query.get("caseId", [""])[0]
-                sample_id = query.get("sampleId", [""])[0]
-                specimen_key = query.get("specimenKey", [""])[0]
-                match_level = query.get("matchLevel", [""])[0]
-                stain_filter = query.get("stainFilter", [""])[0].lower()
-                candidates = slides_by_patient.get(patient_id, [])
-                valid = parsed.path == "/patient/wsiHESlides"
-                valid = valid and bool(patient_id) and bool(candidates)
-                for slide in candidates:
-                    if sample_id and slide.get("sampleId") != sample_id:
-                        continue
-                    if specimen_key and slide.get("specimenKey") != specimen_key:
-                        continue
-                    if match_level and slide.get("matchLevel") != match_level:
-                        continue
-                    if stain_filter == "hne" and slide.get("isHne") is not True:
-                        continue
-                    if stain_filter == "ihc" and slide.get("isIhc") is not True:
-                        continue
-                    if slide.get("canServeTiles") is True:
-                        break
-                else:
-                    valid = False
-                invalid_linkouts += not valid
-            if invalid_linkouts:
-                raise VerificationError(
-                    f"{invalid_linkouts} pathology timeline linkouts do not target a servable slide"
-                )
-            result["timeline_linkouts_validated"] = len(timeline_linkout_urls)
+            result["timeline_linkouts_validated"] = _validate_pathology_timeline_capability(
+                pathology_events, slides_by_patient
+            )
+        elif args.check_timeline and args.wsi_patient_id:
+            result["timeline_linkouts_validated"] = _validate_pathology_timeline_capability(
+                pathology_events, slides_by_patient
+            )
 
         if args.check_access or args.check_all_access:
             if not servable_slides:
                 raise VerificationError("WSI hierarchy has no servable slide for access smoke test")
-            access_targets = servable_slides if args.check_all_access else servable_slides[:1]
+            access_targets = (
+                servable_slides
+                if args.check_all_access
+                else _select_wsi_sample(wsi, servable_slides, args.wsi_sample_size)
+            )
+            if not access_targets:
+                raise VerificationError("WSI hierarchy has no selectable servable slide")
             if args.check_all_tiles and args.max_tile_checks is not None:
                 if args.max_tile_checks >= len(access_targets):
                     tile_targets = access_targets
@@ -1328,10 +1739,10 @@ def verify(args: argparse.Namespace) -> dict[str, Any]:
                     )
                     if not complete:
                         return False, False, False
-                    if not args.tile_url:
+                    if not portal_tile_url:
                         return True, True, True
                     thumbnail_url = (
-                        f"{args.tile_url.rstrip('/')}/thumbnails?"
+                        f"{portal_tile_url.rstrip('/')}/thumbnails?"
                         + urllib.parse.urlencode(
                             {
                                 "source": thumbnail["sourceUrl"],
@@ -1340,7 +1751,12 @@ def verify(args: argparse.Namespace) -> dict[str, Any]:
                             }
                         )
                     )
-                    thumbnail_ok = _request_bytes(thumbnail_url, bearer=token) == 200
+                    thumbnail_ok = (
+                        _request_bytes(
+                            thumbnail_url, bearer=token, origin=portal_origin
+                        )
+                        == 200
+                    )
                     if not thumbnail_ok:
                         return True, False, False
                     tile_ok = True
@@ -1350,11 +1766,17 @@ def verify(args: argparse.Namespace) -> dict[str, Any]:
                     if should_check_tile:
                         metadata_level = _safe_tile_level(metadata)
                         tile_url = (
-                            f"{args.tile_url.rstrip('/')}/tiles/zxy/"
+                            f"{portal_tile_url.rstrip('/')}/tiles/zxy/"
                             f"{max(0, metadata_level)}/0/0"
                         )
                         tile_ok = (
-                            _request_bytes(tile_url, bearer=token, source=source) == 200
+                            _request_bytes(
+                                tile_url,
+                                bearer=token,
+                                source=source,
+                                origin=portal_origin,
+                            )
+                            == 200
                         )
                     return True, True, tile_ok
                 except (VerificationError, KeyError, TypeError, ValueError):
@@ -1383,15 +1805,15 @@ def verify(args: argparse.Namespace) -> dict[str, Any]:
                 result["access_bundles"] = len(access_targets)
             else:
                 result["access_bundle"] = "ok"
-            if args.tile_url:
-                if args.check_all_access:
-                    result["thumbnails"] = len(access_targets)
-                    if args.check_all_tiles:
-                        result["tiles"] = len(tile_targets)
-                else:
-                    result["thumbnail"] = "ok"
-                    if args.check_access:
-                        result["tile"] = "ok"
+            if args.check_all_access:
+                result["thumbnails"] = len(access_targets)
+                if args.check_all_tiles:
+                    result["tiles"] = len(tile_targets)
+            else:
+                result["thumbnail"] = "ok"
+                if args.check_access:
+                    result["tile"] = "ok"
+            result["wsi_access_sample"] = len(access_targets)
 
     return result
 
@@ -1444,6 +1866,15 @@ def main() -> int:
         help="verify pathology timeline event counts and linkouts through the portal API",
     )
     parser.add_argument(
+        "--timeline-patient-sample",
+        type=int,
+        default=int(os.environ.get("TIMELINE_PATIENT_SAMPLE", "0")),
+        help=(
+            "when checking every WSI hierarchy, cap clinical-event requests to a "
+            "deterministic sample of event-bearing patients (0 means all)"
+        ),
+    )
+    parser.add_argument(
         "--check-all-wsi",
         action="store_true",
         help="verify every patient hierarchy and compare every slide to the snapshot",
@@ -1483,9 +1914,23 @@ def main() -> int:
     )
     parser.add_argument("--check-access", action="store_true")
     parser.add_argument(
+        "--wsi-sample-size",
+        type=int,
+        default=int(os.environ.get("WSI_SAMPLE_SIZE", "1")),
+        help="number of distinct servable slides to exercise when --check-access is used",
+    )
+    parser.add_argument(
         "--tile-url",
-        default=os.environ.get("WSI_TILE_SERVER_URL", ""),
-        help="optional tile service base URL; used for thumbnail/tile smoke checks",
+        default="",
+        help=(
+            "deprecated expected tile URL assertion; the actual URL is always read "
+            "from the portal config_service"
+        ),
+    )
+    parser.add_argument(
+        "--expected-tile-url",
+        default=os.environ.get("EXPECTED_WSI_TILE_SERVER_URL", ""),
+        help="assert the portal-advertised tile URL matches this deployment endpoint",
     )
     # Keep credentials out of argv (and therefore out of process listings).
     parser.set_defaults(clickhouse_password=os.environ.get("CLICKHOUSE_PASSWORD", ""))
