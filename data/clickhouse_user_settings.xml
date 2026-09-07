@@ -10,5 +10,13 @@
         <cbio_user>
             <profile>client_user_profile</profile>
         </cbio_user>
+<!-- TODO : if multiple user names are enabled through .env, multiple users should be programmatically constructed here in the init.sh script
+        <cbio_updater>
+            <profile>client_user_profile</profile>
+        </cbio_updater>
+        <default>
+            <profile>client_user_profile</profile>
+        </default>
+-->
     </users>
 </clickhouse>

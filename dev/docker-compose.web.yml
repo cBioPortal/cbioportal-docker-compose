@@ -15,15 +15,15 @@ services:
       -Xmx4g 
       -jar /cbioportal-webapp/app.jar  
       --authenticate=false 
-      --session.service.url=http://cbioportal-session:5001/api/sessions/my_portal/
+      --session.service.url=http://cbioportal-session:${CP_SESSION_SERVICE_SERVER_PORT}/api/sessions/my_portal/
       --spring.datasource.driver-class-name=com.clickhouse.jdbc.ClickHouseDriver
-      --spring.datasource.url=$${CLICKHOUSE_URL}
-      --spring.datasource.username=$${CLICKHOUSE_USER}
-      --spring.datasource.password=$${CLICKHOUSE_PASSWORD}
-      --spring.datasource.clickhouse.url=$${CLICKHOUSE_URL}
-      --spring.datasource.clickhouse.username=$${CLICKHOUSE_USER}
-      --spring.datasource.clickhouse.password=$${CLICKHOUSE_PASSWORD}
+      --spring.datasource.url=$${CP_CLICKHOUSE_URL}
+      --spring.datasource.username=$${CP_CLICKHOUSE_USER}
+      --spring.datasource.password=$${CP_CLICKHOUSE_PASSWORD}
+      --spring.datasource.clickhouse.url=$${CP_CLICKHOUSE_URL}
+      --spring.datasource.clickhouse.username=$${CP_CLICKHOUSE_USER}
+      --spring.datasource.clickhouse.password=$${CP_CLICKHOUSE_PASSWORD}
       --spring.datasource.clickhouse.driver-class-name=com.clickhouse.jdbc.ClickHouseDriver
-      --clickhouse_mode=$${APP_CLICKHOUSE_MODE:-true}
-      $${APP_CUSTOM_ARGS}
+      --clickhouse_mode=$${CP_APP_CLICKHOUSE_MODE:-true}
+      $${CP_APP_CUSTOM_ARGS}
       "

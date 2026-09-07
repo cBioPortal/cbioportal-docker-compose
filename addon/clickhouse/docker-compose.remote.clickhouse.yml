@@ -7,7 +7,7 @@
 #
 # Connection settings are read from the shell environment (e.g. a CI context such as
 # `clickhouse-public-staging-ro-user`) and override the local defaults baked into .env.
-# Required env vars: CLICKHOUSE_URL, CLICKHOUSE_USER, CLICKHOUSE_PASSWORD.
+# Required env vars: CP_CLICKHOUSE_URL, CP_CLICKHOUSE_USER, CP_CLICKHOUSE_PASSWORD.
 #
 # This restores the pre-v7 `docker-compose.remote.clickhouse.yml` (deleted in the
 # "import to ClickHouse" refactor), adapted to the v7 base compose where ClickHouse
@@ -17,9 +17,9 @@ services:
     # `environment` takes precedence over `env_file` (.env), so these point the running
     # container at the remote ClickHouse instead of jdbc:ch://cbioportal-database:8123.
     environment:
-      CLICKHOUSE_URL: ${CLICKHOUSE_URL:?CLICKHOUSE_URL is required}
-      CLICKHOUSE_USER: ${CLICKHOUSE_USER:?CLICKHOUSE_USER is required}
-      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?CLICKHOUSE_PASSWORD is required}
+      CLICKHOUSE_URL: ${CP_CLICKHOUSE_URL:?CP_CLICKHOUSE_URL is required}
+      CLICKHOUSE_USER: ${CP_CLICKHOUSE_USER:?CP_CLICKHOUSE_USER is required}
+      CLICKHOUSE_PASSWORD: ${CP_CLICKHOUSE_PASSWORD:?CP_CLICKHOUSE_PASSWORD is required}
     # Don't wait on (or require) the local DB healthcheck — we're talking to a remote DB.
     # `!override` replaces the base mapping rather than merging into it.
     depends_on: !override
