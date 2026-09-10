@@ -179,7 +179,10 @@ def _source_prefixes(values: Iterable[str] | None = None) -> tuple[str, ...]:
         # A bucket-root prefix such as ``s3://ocra/`` is valid and is used by
         # the source inventory. Keep rejecting malformed/non-S3 values, but
         # do not require an object path after the bucket name.
-        if not parsed.netloc or not parsed.path.startswith("/"):
+        # ``urlparse`` represents a bare bucket root (``s3://pathology``)
+        # with an empty path.  Accept it and normalize it to the canonical
+        # slash form so deployment configuration can use either spelling.
+        if not parsed.netloc or (parsed.path and not parsed.path.startswith("/")):
             raise ValueError(
                 f"{_SOURCE_PREFIX_ENV} contains an invalid S3 prefix: {value}"
             )
