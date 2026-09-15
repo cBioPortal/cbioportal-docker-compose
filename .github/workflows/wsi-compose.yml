@@ -1,0 +1,62 @@
+name: Validate WSI Compose profiles
+
+on:
+  pull_request:
+    paths:
+      - 'docker-compose.yml'
+      - 'addon/slide-viewer/**'
+      - 'addon/wsi-nginx/**'
+      - 'dev/keycloak/keycloak.yml'
+      - 'scripts/validate-wsi-compose.sh'
+      - 'scripts/verify-wsi-release.sh'
+      - 'scripts/verify-databricks-wsi-e2e.sh'
+      - 'scripts/verify-stack-release.py'
+      - 'scripts/verify-stack-release.sh'
+      - 'scripts/test_verify_wsi_contract.py'
+      - 'scripts/reconcile_pathology_timeline_capabilities.py'
+      - 'stack-release-manifest.example.json'
+      - 'release-manifest.schema.json'
+      - 'scripts/verify-study-load.py'
+      - '.github/workflows/wsi-compose.yml'
+  push:
+    paths:
+      - 'docker-compose.yml'
+      - 'addon/slide-viewer/**'
+      - 'addon/wsi-nginx/**'
+      - 'dev/keycloak/keycloak.yml'
+      - 'scripts/validate-wsi-compose.sh'
+      - 'scripts/verify-wsi-release.sh'
+      - 'scripts/verify-databricks-wsi-e2e.sh'
+      - 'scripts/verify-stack-release.py'
+      - 'scripts/verify-stack-release.sh'
+      - 'scripts/test_verify_wsi_contract.py'
+      - 'scripts/reconcile_pathology_timeline_capabilities.py'
+      - 'stack-release-manifest.example.json'
+      - 'release-manifest.schema.json'
+      - 'scripts/verify-study-load.py'
+      - '.github/workflows/wsi-compose.yml'
+
+jobs:
+  compose-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate authenticated and development WSI profiles
+        run: ./scripts/validate-wsi-compose.sh
+
+  verifier-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate release verifier entry points
+        run: |
+          bash -n scripts/verify-wsi-release.sh
+          bash -n scripts/verify-databricks-wsi-e2e.sh
+          bash -n scripts/verify-stack-release.sh
+          python3 -m py_compile scripts/verify-study-load.py
+          python3 -m py_compile scripts/verify-stack-release.py
+          python3 -m py_compile scripts/reconcile_pathology_timeline_capabilities.py
+          python3 scripts/test_verify_wsi_contract.py
+          ./scripts/verify-wsi-release.sh --help
+          ./scripts/verify-databricks-wsi-e2e.sh --help
+          ./scripts/verify-stack-release.sh --help

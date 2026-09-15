@@ -10,13 +10,18 @@
     "sslRequired": "none",
     "clients": [
         {
-            "clientId": "cbioportal",
+            "clientId": "cbioportal-saml",
             "enabled": true,
             "protocol": "saml",
             "fullScopeAllowed": false,
             "adminUrl": "http://localhost:8080/saml",
             "redirectUris": [
-                "http://localhost:8080/*"
+                "http://localhost:3001/*",
+                "http://localhost:3000/*",
+                "http://pllimsksparky4:3000/*",
+                "http://pllimsksparky4:3001/*",
+                "http://pllimsksparky4.mskcc.org:3000/*",
+                "http://pllimsksparky4.mskcc.org:3001/*"
             ],
             "attributes": {
                 "saml.assertion.signature": "false",
@@ -25,7 +30,7 @@
                 "saml.signature.algorithm": "RSA_SHA256",
                 "saml_single_logout_service_url_post": "http://localhost:8080/saml/logout",
                 "saml_force_name_id_format": "true",
-                "saml.client.signature": "true",
+                "saml.client.signature": "false",
                 "saml.authnstatement": "true",
                 "saml_name_id_format": "email",
                 "saml.server.signature": "true",
@@ -112,15 +117,18 @@
         {
             "name": "PUBLIC_STUDIES",
             "clientRoles": {
-                "cbioportal": ["lgg_ucsf_2014"]
+                "cbioportal-saml": ["lgg_ucsf_2014", "coad_msk_2025"]
             }
         }
     ],
     "roles": {
         "client": {
-            "cbioportal": [
+            "cbioportal-saml": [
                 {
                     "name": "lgg_ucsf_2014"
+                },
+                {
+                    "name": "coad_msk_2025"
                 }
             ]
         }
