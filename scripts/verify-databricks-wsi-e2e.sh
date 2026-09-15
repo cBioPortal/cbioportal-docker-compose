@@ -138,8 +138,9 @@ export_args+=(
 # Keep the exporter and tile service on the same publication boundary.  The
 # explicit list is also used by the rehydration stack; callers can replace it
 # for a different deployment, but a bare dev verification must cover all valid
-# pathology source prefixes, not only reef-slides.
-default_source_prefixes='s3://mskmind-bkt/reef-slides/,s3://mskmind-bkt/reef-slides-reprocess-staging/,s3://mskmind-bkt/reef-slides-reprocess-backup/,s3://mskmind-bkt/reef-slides-reprocess-backups/,s3://mskmind-bkt/reef-slides-remediated/,s3://ocra/,s3://pathology/CRC_21-167/,s3://pathology/BR_20-226/,s3://pathology/NB_16-1335/,s3://pathology/LUNG_18-193/,s3://pathology/CART_19-373/,s3://pathology/BR_16-512/,s3://pathology/MYE_16-1591/,s3://pathology/LUNG_18-193-dev/,s3://pathology/LUNG-HNE/,s3://pathology/LUNG_18-193-dev-2/,s3://pathology/TCGA/,s3://pathology/TCGA-BRCA/,s3://pathology/TCGA-COAD/,s3://pathology/crc-genetic-ancestry/,s3://pathology/TOX_19-114/,s3://pathology/SPECTRUM/,s3://pathology/sample/'
+# Bucket-root policy matches the tile server and accepts every valid source
+# location without requiring a continually edited list of subdirectories.
+default_source_prefixes='s3://pathology/,s3://mskmind-bkt/,s3://ocra/'
 source_prefixes="${WSI_ALLOWED_SOURCE_PREFIXES:-$default_source_prefixes}"
 IFS=',' read -r -a source_prefix_array <<< "$source_prefixes"
 for source_prefix in "${source_prefix_array[@]}"; do

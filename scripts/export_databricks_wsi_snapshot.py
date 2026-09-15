@@ -106,7 +106,14 @@ _SOURCE_PREFIX_ENV = "WSI_ALLOWED_SOURCE_PREFIXES"
 # approved-prefix list used by the tile server through WSI_ALLOWED_SOURCE_PREFIXES
 # (or --allowed-source-prefix).  This prevents the exporter and pixel service
 # from disagreeing about which S3 locations are actually servable.
-_DEFAULT_SOURCE_PREFIXES = ("s3://mskmind-bkt/reef-slides/",)
+# Keep the local exporter policy identical to the beta tile-server policy.
+# Bucket-root prefixes intentionally cover every valid Databricks source
+# location; callers may still narrow them with WSI_ALLOWED_SOURCE_PREFIXES.
+_DEFAULT_SOURCE_PREFIXES = (
+    "s3://pathology/",
+    "s3://mskmind-bkt/",
+    "s3://ocra/",
+)
 _THUMBNAIL_PREFIX = "s3://mskmind-bkt/wsi-thumbnails/"
 _DEID_DATE_PATTERNS = (
     re.compile(r'(?<!\d)(?:19|20)\d{2}[-_/](?:0?[1-9]|1[0-2])[-_/](?:0?[1-9]|[12]\d|3[01])(?!\d)'),
@@ -160,7 +167,7 @@ def _source_prefixes(values: Iterable[str] | None = None) -> tuple[str, ...]:
 
     The tile server owns the publication boundary.  The exporter must use the
     same explicit prefix list instead of assuming that every source lives in
-    the reef-slides prefix.  Non-S3 entries (for example the local test-data
+    one bucket prefix.  Non-S3 entries (for example the local test-data
     prefix used by docker compose) are intentionally ignored here because the
     Databricks contract only emits S3 source URLs.
     """

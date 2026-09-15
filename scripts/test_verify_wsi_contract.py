@@ -378,6 +378,12 @@ class DatabricksExportContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "invalid S3 prefix"):
             EXPORT._source_prefixes(["s3://"])
 
+    def test_default_source_prefixes_cover_all_approved_buckets(self):
+        self.assertEqual(
+            EXPORT._DEFAULT_SOURCE_PREFIXES,
+            ("s3://pathology/", "s3://mskmind-bkt/", "s3://ocra/"),
+        )
+
     def test_timeline_record_uses_final_wsi_capability(self):
         values = [""] * len(EXPORT.DATA_COLUMNS)
         for name, value in {
