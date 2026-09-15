@@ -309,11 +309,21 @@ def _parse_wsi_file(study_dir: Path) -> dict[str, Any]:
         "THUMBNAIL_HEIGHT",
         "THUMBNAIL_CONTENT_TYPE",
     )
+    servable_values = {"TRUE", "1", "YES"}
+    has_servable_rows = any(
+        row[index["CAN_SERVE_TILES"]].strip().upper() in servable_values for row in rows
+    )
+    missing_serving_header = [field for field in serving_fields if field not in index]
+    if has_servable_rows and missing_serving_header:
+        raise VerificationError(
+            "WSI data header is missing pixel bundle fields for servable rows: "
+            + ", ".join(missing_serving_header)
+        )
     missing_serving_fields = [
         image_id
         for row, image_id in zip(rows, image_ids)
-        if row[index["CAN_SERVE_TILES"]].strip().upper() in {"TRUE", "1", "YES"}
-        and any(not row[index[field]].strip() for field in serving_fields if field in index)
+        if row[index["CAN_SERVE_TILES"]].strip().upper() in servable_values
+        and any(not row[index[field]].strip() for field in serving_fields)
     ]
     if missing_serving_fields:
         raise VerificationError(
@@ -371,7 +381,6 @@ def _parse_wsi_file(study_dir: Path) -> dict[str, Any]:
                     "wsi_snapshot_manifest.json timeline_event_count is not an integer"
                 ) from None
 
-    servable_values = {"TRUE", "1", "YES"}
     patient_image_ids: dict[str, set[str]] = {}
     servable_image_ids: dict[str, set[str]] = {}
     for row in rows:

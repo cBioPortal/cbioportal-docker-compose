@@ -37,6 +37,20 @@ RECONCILE = _load(
 
 
 class PortalTileContractTests(unittest.TestCase):
+    def test_wsi_parser_rejects_servable_rows_without_pixel_bundle_columns(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            study_dir = Path(temporary)
+            (study_dir / "meta_wsi.txt").write_text(
+                "cancer_study_identifier: study_a\ndata_filename: data_wsi.txt\n",
+                encoding="utf-8",
+            )
+            (study_dir / "data_wsi.txt").write_text(
+                "PATIENT_ID\tIMAGE_ID\tCAN_SERVE_TILES\nP-1\tslide-1\tTRUE\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(VERIFY.VerificationError, "pixel bundle fields"):
+                VERIFY._parse_wsi_file(study_dir)
+
     def test_release_verifiers_use_dev_tables_and_bound_event_requests(self):
         self.assertIn('databricks_target="${DATABRICKS_TARGET:-dev}"', E2E_SCRIPT)
         self.assertIn(
