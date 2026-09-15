@@ -1,0 +1,109 @@
+# Add the WSI slide-viewer tile server to the cBioPortal compose stack.
+#
+# Usage:
+#   docker compose -f docker-compose.yml \
+#                  -f dev/keycloak/keycloak.yml \
+#                  -f addon/slide-viewer/docker-compose.slide-viewer.yml up
+#
+# Required env vars (add to .env or export in shell):
+#   AWS_ENDPOINT_URL    — Dell ECS endpoint, e.g. http://pmindecs.mskcc.org:9020
+#   AWS_ACCESS_KEY_ID   — ECS access key
+#   AWS_SECRET_ACCESS_KEY — ECS secret key
+#   WSI_AUTH_SECRET     — same capability secret as cBioPortal
+#
+# Additional env vars (source and thumbnail prefixes must be supplied for a
+# production deployment; the service remains unready when they are empty):
+#   WSI_AUTH_AUDIENCE=cbioportal-wsi
+#   WSI_AUTH_MAX_TTL=300
+#   WSI_LOCAL_AUTH_BYPASS=false (set true only in the explicit dev override)
+#   WSI_ALLOWED_SOURCE_SCHEMES=s3
+#   WSI_ALLOWED_SOURCE_PREFIXES=<approved source URI prefixes>
+#   WSI_ALLOWED_THUMBNAIL_PREFIXES=<approved thumbnail URI prefixes>
+#   SLIDE_VIEWER_PORT=8081        (host port only when using the dev override)
+#   SLIDE_VIEWER_IMAGE=<immutable image tag or digest>
+
+services:
+  cbioportal:
+    # Pair this overlay with the authenticated portal overlay (for example
+    # dev/keycloak/keycloak.yml). The base compose command is anonymous and
+    # must not be used with the fail-closed default below.
+    environment:
+      WSI_ACCESS_TOKEN_SECRET: ${WSI_AUTH_SECRET:?WSI_AUTH_SECRET is required}
+      WSI_ACCESS_TOKEN_AUDIENCE: ${WSI_AUTH_AUDIENCE:-cbioportal-wsi}
+      WSI_ACCESS_TOKEN_TTL_SECONDS: ${WSI_AUTH_MAX_TTL:-300}
+      WSI_LOCAL_AUTH_BYPASS: ${WSI_LOCAL_AUTH_BYPASS:-false}
+      WSI_ALLOWED_SOURCE_PREFIXES: ${WSI_ALLOWED_SOURCE_PREFIXES:-}
+      WSI_ALLOWED_THUMBNAIL_PREFIXES: ${WSI_ALLOWED_THUMBNAIL_PREFIXES:-}
+
+  slide-viewer:
+    image: ${SLIDE_VIEWER_IMAGE:?SLIDE_VIEWER_IMAGE must be an immutable image tag or digest}
+    restart: unless-stopped
+    environment:
+      AWS_ENDPOINT_URL:          ${AWS_ENDPOINT_URL:?AWS_ENDPOINT_URL is required}
+      AWS_ACCESS_KEY_ID:         ${AWS_ACCESS_KEY_ID:?AWS_ACCESS_KEY_ID is required}
+      AWS_SECRET_ACCESS_KEY:     ${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY is required}
+      REDIS_URL:                 redis://:${SLIDE_VIEWER_REDIS_PASSWORD:?SLIDE_VIEWER_REDIS_PASSWORD is required}@slide-viewer-redis:6379
+      WSI_AUTH_SECRET:           ${WSI_AUTH_SECRET:?WSI_AUTH_SECRET is required}
+      WSI_AUTH_AUDIENCE:         ${WSI_AUTH_AUDIENCE:-cbioportal-wsi}
+      WSI_AUTH_MAX_TTL:          ${WSI_AUTH_MAX_TTL:-300}
+      WSI_ALLOWED_SOURCE_SCHEMES: ${WSI_ALLOWED_SOURCE_SCHEMES:-s3}
+      WSI_ALLOWED_SOURCE_PREFIXES: ${WSI_ALLOWED_SOURCE_PREFIXES:-}
+      WSI_ALLOWED_THUMBNAIL_PREFIXES: ${WSI_ALLOWED_THUMBNAIL_PREFIXES:-}
+      CACHE_MISS_RATE_LIMIT_PER_MINUTE: ${CACHE_MISS_RATE_LIMIT_PER_MINUTE:-1200}
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /cache/slide-blocks:rw,mode=1777
+      - /cache/prometheus:rw,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    depends_on:
+      slide-viewer-redis:
+        condition: service_healthy
+    networks:
+      - cbio-net
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  slide-viewer-redis:
+    image: redis:7.4.5-alpine
+    restart: unless-stopped
+    command: >
+      redis-server
+      --maxmemory ${SLIDE_VIEWER_REDIS_MAXMEMORY:-4gb}
+      --maxmemory-policy allkeys-lru
+      --save "" --appendonly no
+      --requirepass ${SLIDE_VIEWER_REDIS_PASSWORD:?SLIDE_VIEWER_REDIS_PASSWORD is required}
+    environment:
+      REDISCLI_AUTH: ${SLIDE_VIEWER_REDIS_PASSWORD:?SLIDE_VIEWER_REDIS_PASSWORD is required}
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    # The official Redis entrypoint drops from root to the redis user.
+    # These capabilities are limited to that startup transition.
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    networks:
+      - cbio-net
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+networks:
+  cbio-net:

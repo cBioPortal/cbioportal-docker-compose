@@ -1,0 +1,6 @@
+#Patient Identifier	Sample Identifier	WSI Slides	WSI Slides, Part-matched	WSI Slides, Block-matched
+#The patient identifier for the sample.	A unique sample identifier.	Number of associated WSI slides for the sample.	Number of part-matched WSI slides for the sample.	Number of block-matched WSI slides for the sample.
+#STRING	STRING	NUMBER	NUMBER	NUMBER
+#1	1	1	1	1
+PATIENT_ID	SAMPLE_ID	WSI_SAMPLE_SLIDE_COUNT	WSI_SAMPLE_PART_MATCHED_SLIDE_COUNT	WSI_SAMPLE_BLOCK_MATCHED_SLIDE_COUNT
+P-0055908	P-0055908-T01-IM6	2	1	1

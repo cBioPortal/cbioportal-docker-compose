@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" entityID="http://pllimsksparky4:8180/auth/realms/cbio">
+  <md:IDPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+    <md:KeyDescriptor use="signing">
+      <ds:KeyInfo><ds:X509Data><ds:X509Certificate>MIIClzCCAX8CBgGfhWlVITANBgkqhkiG9w0BAQsFADAPMQ0wCwYDVQQDDARjYmlvMB4XDTI2MDcyMTE2MDAwMFoXDTM2MDcyMTE2MDE0MFowDzENMAsGA1UEAwwEY2JpbzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAIweHLMsLlcFiJ1mFGzFeOU3cQw3tcbBVxbNjBSHUqeVDn88YW0OnkBC+y0tIo1bCb4c5OH3rIIEXDTrVC7Uy97n76LhP1GquWoXn+VxBxJMKLmYX4d6tUIb3EvL9422COAsFHMI6saQ8ZuZQkIlZDogOTnldbAt8NoIMdMfq+JgKrpKAfWt24997+pn27+V7SyLepON76TBDf3kHioJRDFW7feAfsXGjG3w/H+3UiTGkMMcFrVJLLcPpv6yGNVWcUddIux8xzmMjYE33HaWLNoZnlwz3rfDhUs70NxIECj8yKmWwlD5I+JDsu8Twlhvf++fxTDXAlQHeFNghyx+24ECAwEAATANBgkqhkiG9w0BAQsFAAOCAQEAgZgq9e6pbgjLZRWW2PvwqvLM14EkHGYKB6GMnOuWINjEnyrl9bB2wmXScN2HF2RT6rg6iV81X8rKDORhcH/9MUvjINDg5biYoBVaHSQozjejwyG9DGToKFr0drgkddCUQG5WUM0V/kOtiLSr9h7fHZHUu8C3So5Tkp6snRBoEdpvVlUYZNw/AXuPuYUXQZOjbq7klKsjkHUaa0DnQ0G/B+Gf4XTo+vsv14HQN37x7y8WPhyTVcGavUOVGK2R1DLpOQxo157YDQaswrzbG2dOX/CTw1WAjpwdP2njYRTd6MRiQcTbsbeq7bkzfiUbJjDtqJfBWX3vSYqbhG9fYmb1kw==</ds:X509Certificate></ds:X509Data></ds:KeyInfo>
+    </md:KeyDescriptor>
+    <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="http://pllimsksparky4:8180/auth/realms/cbio/protocol/saml"/>
+    <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="http://pllimsksparky4:8180/auth/realms/cbio/protocol/saml"/>
+  </md:IDPSSODescriptor>
+</md:EntityDescriptor>

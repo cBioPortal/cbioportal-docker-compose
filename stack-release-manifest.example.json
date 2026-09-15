@@ -1,0 +1,42 @@
+{
+  "version": 2,
+  "release_id": "wsi-beta-YYYYMMDD-N",
+  "created_at_utc": "2026-09-15T00:00:00Z",
+  "components": {
+    "frontend": {
+      "git_sha": "0000000000000000000000000000000000000000",
+      "artifact_url": "https://immutable-deploy-id--cbioportalfrontend.netlify.app/"
+    },
+    "backend": {
+      "git_sha": "0000000000000000000000000000000000000000",
+      "image_digest": "cbioportal/cbioportal-dev@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "tile_server": {
+      "git_sha": "0000000000000000000000000000000000000000",
+      "image_digest": "cbioportal/cbioportal-tile-server@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "pdm": {
+      "git_sha": "0000000000000000000000000000000000000000",
+      "contract_version": "wsi-serving-v2",
+      "databricks_job_run_id": "replace-with-run-id"
+    },
+    "clickhouse": {
+      "schema_version": "3.2.0",
+      "source_database": "production-database-clone-name"
+    }
+  },
+  "allowed_source_prefixes": [
+    "s3://pathology/",
+    "s3://mskmind-bkt/",
+    "s3://ocra/"
+  ],
+  "allowed_thumbnail_prefixes": ["s3://mskmind-bkt/wsi-thumbnails/"],
+  "studies": [
+    {
+      "study_id": "study_id_from_meta_study",
+      "study_dir": "/stable/release/path/study_id_from_meta_study",
+      "timeline_dir": "/stable/release/path/study_id_from_meta_study",
+      "snapshot_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ]
+}
