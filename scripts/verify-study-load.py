@@ -284,7 +284,14 @@ def _parse_wsi_file(study_dir: Path) -> dict[str, Any]:
     if header_index is None:
         raise VerificationError("WSI data file has no header")
     header = lines[header_index].split("\t")
-    required = {"PATIENT_ID", "IMAGE_ID", "CAN_SERVE_TILES"}
+    required = {
+        "PATIENT_ID",
+        "IMAGE_ID",
+        "CAN_SERVE_TILES",
+        "IS_HNE",
+        "IS_IHC",
+        "SLIDE_TYPE",
+    }
     missing = sorted(required.difference(header))
     if missing:
         raise VerificationError(f"WSI data header is missing: {', '.join(missing)}")
@@ -300,6 +307,33 @@ def _parse_wsi_file(study_dir: Path) -> dict[str, Any]:
         raise VerificationError("WSI data contains a row without IMAGE_ID")
     if len(image_ids) != len(set(image_ids)):
         raise VerificationError("WSI data contains duplicate IMAGE_ID values")
+
+    allowed_slide_types = {"H&E", "IHC", "OTHER"}
+    boolean_values = {"TRUE", "1", "YES", "FALSE", "0", "NO"}
+    for row_number, row in enumerate(rows, start=header_index + 2):
+        is_hne = row[index["IS_HNE"]].strip().upper()
+        is_ihc = row[index["IS_IHC"]].strip().upper()
+        slide_type = row[index["SLIDE_TYPE"]].strip().upper()
+        if is_hne not in boolean_values or is_ihc not in boolean_values:
+            raise VerificationError(
+                f"WSI stain flags must be boolean at data row {row_number}"
+            )
+        if slide_type not in allowed_slide_types:
+            raise VerificationError(
+                f"WSI row {row_number} has missing or unsupported SLIDE_TYPE"
+            )
+        hne = is_hne in {"TRUE", "1", "YES"}
+        ihc = is_ihc in {"TRUE", "1", "YES"}
+        if hne and ihc:
+            raise VerificationError(
+                f"WSI row {row_number} is marked both H&E and IHC"
+            )
+        expected_type = "IHC" if ihc else "H&E" if hne else "OTHER"
+        if slide_type != expected_type:
+            raise VerificationError(
+                f"WSI row {row_number} has inconsistent stain metadata: "
+                f"flags imply {expected_type}, SLIDE_TYPE is {slide_type}"
+            )
 
     serving_fields = (
         "SOURCE_URL",
@@ -668,10 +702,15 @@ def _study_record(studies: Any, study_id: str) -> dict[str, Any]:
     return record
 
 
-def _clickhouse_wsi_counts(args: argparse.Namespace, study_id: str) -> tuple[int, int]:
+def _clickhouse_wsi_counts(args: argparse.Namespace, study_id: str) -> tuple[int, int, int, int]:
     """Return imported WSI row/servable counts when a local DB container is supplied."""
     query = (
-        "SELECT count(), countIf(can_serve_tiles) FROM wsi_slide "
+        "SELECT count(), countIf(can_serve_tiles), "
+        "countIf(slide_type IS NULL OR slide_type = ''), "
+        "countIf((is_hne AND is_ihc) "
+        "OR (is_hne AND slide_type != 'H&E') "
+        "OR (is_ihc AND slide_type != 'IHC') "
+        "OR (NOT is_hne AND NOT is_ihc AND slide_type != 'Other')) "
         "WHERE cancer_study_id = (SELECT cancer_study_id FROM cancer_study "
         "WHERE cancer_study_identifier = '"
         + study_id.replace("'", "''")
@@ -700,9 +739,9 @@ def _clickhouse_wsi_counts(args: argparse.Namespace, study_id: str) -> tuple[int
             timeout=30,
         )
         values = completed.stdout.strip().split("\t")
-        if len(values) != 2:
+        if len(values) != 4:
             raise ValueError
-        return int(values[0]), int(values[1])
+        return tuple(int(value) for value in values)  # type: ignore[return-value]
     except (OSError, subprocess.SubprocessError, ValueError):
         raise VerificationError("ClickHouse WSI count query failed") from None
 
@@ -1503,9 +1542,18 @@ def verify(args: argparse.Namespace) -> dict[str, Any]:
                 )
             result["wsi_patient_id"] = args.wsi_patient_id
     if args.clickhouse_container:
-        db_rows, db_servable = _clickhouse_wsi_counts(args, study_id)
+        db_rows, db_servable, db_missing_stain_types, db_mismatched_stain_types = (
+            _clickhouse_wsi_counts(args, study_id)
+        )
         result["database_wsi_rows"] = db_rows
         result["database_wsi_servable"] = db_servable
+        result["database_wsi_missing_stain_types"] = db_missing_stain_types
+        result["database_wsi_mismatched_stain_types"] = db_mismatched_stain_types
+        if db_missing_stain_types or db_mismatched_stain_types:
+            raise VerificationError(
+                "database WSI stain metadata is missing or inconsistent for "
+                f"{db_missing_stain_types + db_mismatched_stain_types} row(s)"
+            )
         if wsi is not None and (db_rows != wsi["rows"] or db_servable != wsi["servable"]):
             raise VerificationError(
                 "database WSI count mismatch: "

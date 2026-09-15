@@ -419,6 +419,32 @@ def _bool(value: Any) -> str:
     return "TRUE" if str(value).strip().lower() in {"1", "true", "yes"} else "FALSE"
 
 
+def _normalized_slide_type(record: dict[str, Any]) -> str:
+    """Return the canonical stain type without trusting a nullable legacy field."""
+    is_hne = _bool(record.get("is_hne")) == "TRUE"
+    is_ihc = _bool(record.get("is_ihc")) == "TRUE"
+    if is_hne and is_ihc:
+        raise ValueError("canonical WSI row is both H&E and IHC")
+
+    raw = _text(record.get("slide_type")).strip().upper()
+    if raw in {"H&E", "HE"}:
+        stored = "H&E"
+    elif raw == "IHC":
+        stored = "IHC"
+    elif raw in {"OTHER", ""}:
+        stored = "Other"
+    else:
+        raise ValueError(f"canonical WSI row has unsupported slide_type: {raw}")
+
+    # The resolved flags are authoritative. A nullable or stale slide_type is
+    # common in snapshots produced before the normalized column was added.
+    if is_ihc:
+        return "IHC"
+    if is_hne:
+        return "H&E"
+    return stored
+
+
 def _int(value: Any) -> str:
     return "" if value in (None, "") else str(int(value))
 
@@ -511,9 +537,10 @@ def _row(
     values.extend((f"{match_level.lower()}::{part_key}::{block_key}", _deid_text(record.get("stain_name")), _deid_text(record.get("stain_group"))))
     values.extend((_bool(record.get("is_hne")), _bool(record.get("is_ihc")), _deid_text(record.get("magnification"))))
     values.append(_int(record.get("file_size_bytes")))
+    slide_type = _normalized_slide_type(record)
     values.extend((
         _deid_text(record.get("barcode")),
-        _deid_text(record.get("slide_type")),
+        slide_type,
         "TRUE" if can_serve else "FALSE",
         source if can_serve else "",
         json.dumps(tile_metadata_value, separators=(",", ":"), sort_keys=True) if can_serve else "",

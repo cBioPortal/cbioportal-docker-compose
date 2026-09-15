@@ -51,6 +51,19 @@ WSI_ATTRS = (
 DATA_COLUMNS = exporter.DATA_COLUMNS
 
 
+def _slide_type_from_values(values: list[str]) -> str:
+    """Keep legacy staging rows from reintroducing a nullable slide type."""
+    is_hne = values[DATA_COLUMNS.index("IS_HNE")] == "TRUE"
+    is_ihc = values[DATA_COLUMNS.index("IS_IHC")] == "TRUE"
+    if is_hne and is_ihc:
+        raise ValueError("staged WSI row is both H&E and IHC")
+    if is_ihc:
+        return "IHC"
+    if is_hne:
+        return "H&E"
+    return values[DATA_COLUMNS.index("SLIDE_TYPE")].strip() or "Other"
+
+
 def _args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--clickhouse-config", type=Path, required=True,
@@ -381,7 +394,7 @@ def _populate_tables(args: argparse.Namespace, db: sqlite3.Connection, study_ids
     _insert_stream(args, "wsi_block", ["cancer_study_id", "patient_id", "part_key", "block_key", "block_number", "block_label"],
                    ((study, patient, part_key, block_key, *data) for (study, patient, part_key, block_key), data in sorted(blocks.items())), {4, 5})
     _insert_stream(args, "wsi_slide", ["cancer_study_id", "patient_id", "image_id", "stain_name", "stain_group", "is_hne", "is_ihc", "magnification", "file_size_bytes", "can_serve_tiles", "barcode", "slide_type", "source_url", "tile_metadata_json", "thumbnail_url", "thumbnail_width", "thumbnail_height", "thumbnail_content_type"],
-                   ((study, patient, image, values[16] or None, values[17] or None, values[18] == "TRUE", values[19] == "TRUE", values[20] or None, int(values[21]) if values[21] else None, values[24] == "TRUE", values[22] or None, values[23] or None, values[25] or None, values[26] or None, values[27] or None, int(values[28]) if values[28] else None, int(values[29]) if values[29] else None, values[30] or None) for study, patient, image, sample, values, timing in slides_for_insert), {3, 4, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17})
+                   ((study, patient, image, values[16] or None, values[17] or None, values[18] == "TRUE", values[19] == "TRUE", values[20] or None, int(values[21]) if values[21] else None, values[24] == "TRUE", values[22] or None, _slide_type_from_values(values), values[25] or None, values[26] or None, values[27] or None, int(values[28]) if values[28] else None, int(values[29]) if values[29] else None, values[30] or None) for study, patient, image, sample, values, timing in slides_for_insert), {3, 4, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17})
     # The generator above is exhausted after wsi_slide; rescan for placements
     # and timeline aggregation.
     placements = ((study, patient, image, values[4], values[11], sample, values[14], values[15])

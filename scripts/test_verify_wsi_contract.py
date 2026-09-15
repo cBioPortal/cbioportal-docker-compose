@@ -30,6 +30,9 @@ def _load(name: str, path: Path):
 VERIFY = _load("verify_study_load", ROOT / "verify-study-load.py")
 STACK = _load("verify_stack_release", ROOT / "verify-stack-release.py")
 EXPORT = _load("export_databricks_wsi_snapshot", ROOT / "export_databricks_wsi_snapshot.py")
+EXPORTER_HYDRATE = _load(
+    "hydrate_databricks_wsi_clickhouse", ROOT / "hydrate_databricks_wsi_clickhouse.py"
+)
 RECONCILE = _load(
     "reconcile_pathology_timeline_capabilities",
     ROOT / "reconcile_pathology_timeline_capabilities.py",
@@ -45,10 +48,26 @@ class PortalTileContractTests(unittest.TestCase):
                 encoding="utf-8",
             )
             (study_dir / "data_wsi.txt").write_text(
-                "PATIENT_ID\tIMAGE_ID\tCAN_SERVE_TILES\nP-1\tslide-1\tTRUE\n",
+                "PATIENT_ID\tIMAGE_ID\tIS_HNE\tIS_IHC\tSLIDE_TYPE\tCAN_SERVE_TILES\n"
+                "P-1\tslide-1\tTRUE\tFALSE\tH&E\tTRUE\n",
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(VERIFY.VerificationError, "pixel bundle fields"):
+                VERIFY._parse_wsi_file(study_dir)
+
+    def test_wsi_parser_rejects_missing_slide_type_metadata(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            study_dir = Path(temporary)
+            (study_dir / "meta_wsi.txt").write_text(
+                "cancer_study_identifier: study_a\ndata_filename: data_wsi.txt\n",
+                encoding="utf-8",
+            )
+            (study_dir / "data_wsi.txt").write_text(
+                "PATIENT_ID\tIMAGE_ID\tIS_HNE\tIS_IHC\tSLIDE_TYPE\tCAN_SERVE_TILES\n"
+                "P-1\tslide-1\tFALSE\tTRUE\t\tFALSE\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(VERIFY.VerificationError, "missing or unsupported SLIDE_TYPE"):
                 VERIFY._parse_wsi_file(study_dir)
 
     def test_release_verifiers_use_dev_tables_and_bound_event_requests(self):
@@ -251,6 +270,27 @@ class DatabricksExportContractTests(unittest.TestCase):
             "source_fingerprint": "a" * 10 + "20395333" + "b" * 46,
         }
         self.assertTrue(EXPORT._metadata_is_safe_and_valid(metadata))
+
+    def test_export_derives_ihc_type_when_canonical_type_is_null(self):
+        self.assertEqual(
+            EXPORT._normalized_slide_type(
+                {"is_hne": False, "is_ihc": True, "slide_type": None}
+            ),
+            "IHC",
+        )
+
+    def test_export_rejects_conflicting_stain_flags(self):
+        with self.assertRaisesRegex(ValueError, "both H&E and IHC"):
+            EXPORT._normalized_slide_type(
+                {"is_hne": True, "is_ihc": True, "slide_type": "H&E"}
+            )
+
+    def test_hydrator_derives_ihc_type_from_legacy_staging_row(self):
+        values = [""] * len(EXPORT.DATA_COLUMNS)
+        values[EXPORT.DATA_COLUMNS.index("IS_HNE")] = "FALSE"
+        values[EXPORT.DATA_COLUMNS.index("IS_IHC")] = "TRUE"
+        values[EXPORT.DATA_COLUMNS.index("SLIDE_TYPE")] = ""
+        self.assertEqual(EXPORTER_HYDRATE._slide_type_from_values(values), "IHC")
 
     def test_export_preserves_a_matched_row_marked_non_servable(self):
         with tempfile.TemporaryDirectory() as temporary:
