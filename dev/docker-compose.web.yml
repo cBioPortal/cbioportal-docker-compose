@@ -9,6 +9,15 @@ services:
     env_file:
       - path: ./.env
         required: false
+    # The web-only image has no python3 / db-scripts (see docker/web/Dockerfile in the main
+    # cbioportal repo), so it can't run cbioportal-migration's entrypoint. Web-only deployments
+    # are expected to point at a database that's already at the current schema version (e.g. a
+    # shared, externally-managed ClickHouse instance) rather than self-migrate on startup.
+    depends_on: !override
+      cbioportal-database:
+        condition: service_healthy
+      cbioportal-session:
+        condition: service_started
     command: /bin/sh -c "
       java 
       -Xms2g 
@@ -27,3 +36,7 @@ services:
       --clickhouse_mode=$${APP_CLICKHOUSE_MODE:-true}
       $${APP_CUSTOM_ARGS}
       "
+
+  cbioportal-migration:
+    deploy:
+      replicas: 0
