@@ -49,7 +49,10 @@ services:
     networks:
       - cbio-net
     healthcheck:
-      test: ["CMD-SHELL", "clickhouse-client --user=$$CLICKHOUSE_USER --password=$$CLICKHOUSE_PASSWORD --query=\"SELECT COUNT(*) FROM $$CLICKHOUSE_DB.type_of_cancer\" 2>/dev/null | grep -q '^[1-9]'"]
+      # Query via the container IP rather than localhost: while the initdb scripts run, ClickHouse
+      # listens only on 127.0.0.1, so a localhost check can pass before other containers
+      # (e.g. cbioportal-migration) are able to connect.
+      test: ["CMD-SHELL", "clickhouse-client --host \"$$(hostname)\" --user=$$CLICKHOUSE_USER --password=$$CLICKHOUSE_PASSWORD --query=\"SELECT COUNT(*) FROM $$CLICKHOUSE_DB.type_of_cancer\" 2>/dev/null | grep -q '^[1-9]'"]
       interval: 10s
       timeout: 3s
       retries: 300
