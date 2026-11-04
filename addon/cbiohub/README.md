@@ -52,7 +52,7 @@ Set these in the shell or in `.env`:
 | `CBIOHUB_USER`, `CBIOHUB_ADMIN_EMAILS` | `admin@localhost` | Who everyone is (there's no sign-in yet), and who can manage data sources |
 | `CBIOHUB_AIRFLOW_USER`, `CBIOHUB_AIRFLOW_PASSWORD` | `admin` / `admin` | Airflow login, also used by cBioHub to call Airflow's API |
 | `CBIOHUB_POSTGRES_PASSWORD` | `cbiohub` | |
-| `CBIOHUB_AWS_ACCESS_KEY_ID`, `CBIOHUB_AWS_SECRET_ACCESS_KEY`, `AWS_REGION` | none | Only for S3 sources: an IAM user that can read the buckets you add. `.env` is checked in, so keep these out of it: put them in `.env.aws` (gitignored) and load it into the shell before `up` (`set -a; . ./.env.aws; set +a`) |
+| `CBIOHUB_AWS_ACCESS_KEY_ID`, `CBIOHUB_AWS_SECRET_ACCESS_KEY`, `AWS_REGION` | none | Only for private S3 buckets: an IAM user that can read them (public buckets are read anonymously when no key is set). `.env` is checked in, so keep these out of it: put them in `.env.aws` (gitignored) and load it into the shell before `up` (`set -a; . ./.env.aws; set +a`) |
 | `CBIOHUB_SCAN_INTERVAL_MINUTES` | `5` | How often folder and S3 sources are rescanned |
 
 ## Limits

@@ -99,6 +99,10 @@ services:
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
       AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session
       AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL: "30"
+      # The image is amd64 (like the portal's); under emulation (Apple silicon) the webserver can
+      # take over the default 120 s to start, and `airflow standalone` doesn't restart it.
+      AIRFLOW__WEBSERVER__WEB_SERVER_MASTER_TIMEOUT: "300"
+      AIRFLOW__WEBSERVER__WORKERS: "2"
       AIRFLOW_CONN_CBIOHUB_CATALOG: postgresql://cbiohub:${CBIOHUB_POSTGRES_PASSWORD:-cbiohub}@cbiohub-postgres:5432/catalog
       CBIOHUB_AIRFLOW_USER: ${CBIOHUB_AIRFLOW_USER:-admin}
       CBIOHUB_AIRFLOW_PASSWORD: ${CBIOHUB_AIRFLOW_PASSWORD:-admin}
