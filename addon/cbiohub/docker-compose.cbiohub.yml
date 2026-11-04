@@ -1,0 +1,132 @@
+# cBioHub: a study catalog and import dashboard next to the portal, with Airflow running the
+# validation and import DAGs against this portal's database.
+#
+#   docker compose -f docker-compose.yml -f addon/cbiohub/docker-compose.cbiohub.yml up -d --build
+#
+#   cBioPortal  http://localhost:8080
+#   cBioHub     http://localhost:${CBIOHUB_PORT:-8000}     (study list, data sources, validation, import)
+#   Airflow     http://localhost:${CBIOHUB_AIRFLOW_PORT:-8082}   (admin / admin)
+#
+# Builds from a cBioHub checkout at CBIOHUB_SRC (default ../cbiohub, next to this repo).
+# Studies in ./study show up in cBioHub; admins can add S3 buckets and GitHub repos too.
+# See addon/cbiohub/README.md.
+
+x-cbiohub-db: &cbiohub-db
+  POSTGRES_USER: cbiohub
+  POSTGRES_PASSWORD: ${CBIOHUB_POSTGRES_PASSWORD:-cbiohub}
+
+x-cbiohub-webapp: &cbiohub-webapp
+  build: ${CBIOHUB_SRC:-../cbiohub}/webapp
+  environment:
+    DATABASE_URL: postgresql://cbiohub:${CBIOHUB_POSTGRES_PASSWORD:-cbiohub}@cbiohub-postgres:5432/catalog
+    AIRFLOW_BASE_URL: http://cbiohub-airflow:8080
+    AIRFLOW_PUBLIC_URL: http://localhost:${CBIOHUB_AIRFLOW_PORT:-8082}
+    AIRFLOW_USERNAME: ${CBIOHUB_AIRFLOW_USER:-admin}
+    AIRFLOW_PASSWORD: ${CBIOHUB_AIRFLOW_PASSWORD:-admin}
+    # Studies: this portal's ./study folder, mounted at the same path in Airflow.
+    DEFAULT_SOURCE: file:///study/
+    LOCAL_SOURCES_DIR: /study
+    MIRROR_ROOT: file:///cbiohub-data/mirror/
+    VALIDATE_DAG_ID: validate_studies
+    REPORTS_DIR: /cbiohub-data/reports
+    SCAN_INTERVAL_MINUTES: ${CBIOHUB_SCAN_INTERVAL_MINUTES:-5}
+    # No sign-in yet: everyone is CBIOHUB_USER, who is an admin. Put an auth proxy in front
+    # (it sets X-Forwarded-Email) before sharing this beyond your machine.
+    DEV_USER: ${CBIOHUB_USER:-admin@localhost}
+    ADMIN_EMAILS: ${CBIOHUB_ADMIN_EMAILS:-admin@localhost}
+    # Optional, for S3 sources: S3 credentials as usual for the AWS SDK.
+    AWS_REGION: ${AWS_REGION:-us-east-1}
+    AWS_ACCESS_KEY_ID: ${CBIOHUB_AWS_ACCESS_KEY_ID:-}
+    AWS_SECRET_ACCESS_KEY: ${CBIOHUB_AWS_SECRET_ACCESS_KEY:-}
+  volumes:
+    - ./study:/study:ro
+    - cbiohub_data:/cbiohub-data:ro
+  networks:
+    - cbio-net
+
+services:
+  cbiohub-postgres:
+    image: postgres:16
+    environment:
+      <<: *cbiohub-db
+      POSTGRES_DB: catalog
+    volumes:
+      - cbiohub_pgdata:/var/lib/postgresql/data
+      - ./addon/cbiohub/initdb/00-airflow.sql:/docker-entrypoint-initdb.d/00-airflow.sql:ro
+      - ${CBIOHUB_SRC:-../cbiohub}/db/init/01-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./addon/cbiohub/initdb/10-destinations.sql:/docker-entrypoint-initdb.d/10-destinations.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cbiohub -d catalog"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - cbio-net
+    restart: unless-stopped
+
+  # Fills the catalog from the sources before the webapp starts.
+  cbiohub-catalog-init:
+    <<: *cbiohub-webapp
+    command: ["node", "src/server/backfill.js"]
+    depends_on:
+      cbiohub-postgres:
+        condition: service_healthy
+    restart: "no"
+
+  cbiohub-webapp:
+    <<: *cbiohub-webapp
+    ports:
+      - "${CBIOHUB_PORT:-8000}:8000"
+    depends_on:
+      cbiohub-postgres:
+        condition: service_healthy
+      cbiohub-catalog-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  cbiohub-airflow:
+    build:
+      context: ${CBIOHUB_SRC:-../cbiohub}/airflow
+      args:
+        # Same image as the portal, so the importer matches the portal's version.
+        CBIOPORTAL_IMAGE: ${DOCKER_IMAGE_CBIOPORTAL}
+    env_file:
+      - .env # CLICKHOUSE_* for rebuilding derived tables
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://cbiohub:${CBIOHUB_POSTGRES_PASSWORD:-cbiohub}@cbiohub-postgres:5432/airflow
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
+      AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session
+      AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL: "30"
+      AIRFLOW_CONN_CBIOHUB_CATALOG: postgresql://cbiohub:${CBIOHUB_POSTGRES_PASSWORD:-cbiohub}@cbiohub-postgres:5432/catalog
+      CBIOHUB_AIRFLOW_USER: ${CBIOHUB_AIRFLOW_USER:-admin}
+      CBIOHUB_AIRFLOW_PASSWORD: ${CBIOHUB_AIRFLOW_PASSWORD:-admin}
+      # One import DAG per portal: import_studies__local loads into this stack's cBioPortal.
+      CBIOHUB_PORTALS: '{"local": {"url": "http://cbioportal:8080"}}'
+      CBIOHUB_VALIDATE_PORTAL_URL: http://cbioportal:8080
+      CBIOHUB_REPORTS_DIR: /cbiohub-data/reports
+      AWS_DEFAULT_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${CBIOHUB_AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${CBIOHUB_AWS_SECRET_ACCESS_KEY:-}
+    volumes:
+      - ./study:/study:ro
+      - cbiohub_data:/cbiohub-data
+      # The importer writes to the portal's database: same properties and derived-table SQL
+      # as the cbioportal service.
+      - ${APPLICATION_PROPERTIES_PATH:-./config/application.properties}:/cbioportal-webapp/application.properties:ro
+      - ./data/populate_derived_tables.sql:/cbioportal/populate_derived_tables.sql:ro
+    ports:
+      - "${CBIOHUB_AIRFLOW_PORT:-8082}:8080"
+    depends_on:
+      cbiohub-postgres:
+        condition: service_healthy
+      cbioportal-migration:
+        condition: service_completed_successfully
+    networks:
+      - cbio-net
+    restart: unless-stopped
+
+volumes:
+  cbiohub_pgdata:
+  cbiohub_data:
