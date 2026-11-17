@@ -1,0 +1,21 @@
+# Apply after dev/keycloak/keycloak.yml: OpenID Connect login through the Keycloak client
+# cbioportal_oidc instead of SAML.
+# The backend reaches Keycloak at keycloak:8080 and the browser at localhost:8081, so the
+# provider endpoints are listed one by one instead of being discovered from an issuer URI.
+# Tokens carry the browser-side issuer, which the userinfo endpoint at keycloak:8080 rejects, so
+# no user-info-uri is set: the email and roles come from the ID token.
+services:
+  cbioportal:
+    command: >
+      /bin/sh -c "java -Xms2g -Xmx4g  -cp '/cbioportal-webapp:/cbioportal-webapp/lib/*' org.cbioportal.PortalApplication --spring.config.location=cbioportal-webapp/application.properties --dat.method=none --multithread.core_pool_size=1
+      --authenticate=oauth2 --session.service.url=http://cbioportal-session:5001/api/sessions/my_portal/ --security.cors.allowed-origins=* --filter_groups_by_appname=false
+      --spring.security.oauth2.client.registration.keycloak.client-name=Keycloak
+      --spring.security.oauth2.client.registration.keycloak.client-id=cbioportal_oidc
+      --spring.security.oauth2.client.registration.keycloak.client-secret=cbioportal_oidc_secret
+      --spring.security.oauth2.client.registration.keycloak.authorization-grant-type=authorization_code
+      --spring.security.oauth2.client.registration.keycloak.scope=openid,profile,email
+      --spring.security.oauth2.client.registration.keycloak.redirect-uri={baseUrl}/login/oauth2/code/{registrationId}
+      --spring.security.oauth2.client.provider.keycloak.authorization-uri=http://localhost:8081/auth/realms/cbio/protocol/openid-connect/auth
+      --spring.security.oauth2.client.provider.keycloak.token-uri=http://keycloak:8080/auth/realms/cbio/protocol/openid-connect/token
+      --spring.security.oauth2.client.provider.keycloak.jwk-set-uri=http://keycloak:8080/auth/realms/cbio/protocol/openid-connect/certs
+      --spring.security.oauth2.client.provider.keycloak.user-name-attribute=email"

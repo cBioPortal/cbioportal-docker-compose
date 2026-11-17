@@ -1,0 +1,22 @@
+# Apply after dev/keycloak/keycloak.yml: SAML login plus a basic-login user, with data access
+# tokens issued by the Keycloak client cbioportal_api.
+# The backend reaches Keycloak at keycloak:8080 and the browser at localhost:8081; tokens carry
+# the browser-side issuer.
+services:
+  cbioportal:
+    environment:
+      # Basic login: basicuser / P@ssword1. Set here because sh -c would expand the "$" in the
+      # bcrypt hash on the command line; "$$" escapes compose interpolation.
+      BASIC_PASSWORD: "$$2a$$10$$q3RjIlGO72fPGSfit07ccuNVPjAIHaq2ZuKZr2LGobb0KxscbDAb."
+    command: >
+      /bin/sh -c "java -Xms2g -Xmx4g  -cp '/cbioportal-webapp:/cbioportal-webapp/lib/*' org.cbioportal.PortalApplication --spring.config.location=cbioportal-webapp/application.properties --multithread.core_pool_size=1
+      --authenticate=saml_plus_basic --spring.security.saml2.relyingparty.registration.cbio-idp.assertingparty.metadata-uri=classpath:/client-tailored-saml-idp-metadata.xml --session.service.url=http://cbioportal-session:5001/api/sessions/my_portal/
+      --spring.security.saml2.relyingparty.registration.cbio-idp.entity-id=cbioportal --spring.security.saml2.relyingparty.registration.cbio-idp.signing.credentials[0].certificate-location=classpath:/local.crt
+      --spring.security.saml2.relyingparty.registration.cbio-idp.signing.credentials[0].private-key-location=classpath:/local.key --security.cors.allowed-origins=* --filter_groups_by_appname=false
+      --basic.username=basicuser --basic.authorities=study_es_0
+      --dat.method=oauth2 --dat.oauth2.clientId=cbioportal_api --dat.oauth2.clientSecret=cbioportal_api_secret
+      --dat.oauth2.accessTokenUri=http://keycloak:8080/auth/realms/cbio/protocol/openid-connect/token
+      --dat.oauth2.jwkUrl=http://keycloak:8080/auth/realms/cbio/protocol/openid-connect/certs
+      --dat.oauth2.issuer=http://localhost:8081/auth/realms/cbio
+      --dat.oauth2.userAuthorizationUri=http://localhost:8081/auth/realms/cbio/protocol/openid-connect/auth
+      --dat.oauth2.redirectUri=http://localhost:8080/api/data-access-token/oauth2"
