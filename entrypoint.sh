@@ -1,4 +1,5 @@
 #!/bin/bash
+
 set -eo pipefail
 
 ## Inject application.properties into the importer JAR so it overrides the bundled one

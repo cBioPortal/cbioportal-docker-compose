@@ -1,14 +1,15 @@
 <clickhouse>
+    <!-- Settings are applied to the "default" profile so that they cover every user, whether defined
+         in users.d (e.g. the CLICKHOUSE_USER account created by the image entrypoint, which is assigned
+         the "default" profile) or created with CREATE USER by data/create_cbio_users_and_grant_privileges.sh. -->
     <profiles>
-        <client_user_profile>
+        <default>
             <max_query_size>1000000000</max_query_size>
             <max_ast_elements>6000000</max_ast_elements>
             <max_expanded_ast_elements>6000000</max_expanded_ast_elements>
-        </client_user_profile>
+            <!-- clickhouse-jdbc 0.6.x cannot read HTTP-level compressed responses; it uses native
+                 (compress=1) compression instead. ClickHouse >= 25.x defaults this setting to 1. -->
+            <enable_http_compression>0</enable_http_compression>
+        </default>
     </profiles>
-    <users>
-        <cbio_user>
-            <profile>client_user_profile</profile>
-        </cbio_user>
-    </users>
 </clickhouse>
